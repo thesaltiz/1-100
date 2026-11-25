@@ -14,7 +14,12 @@
 var CONFIG = {
   title: 'גילאים 1 עד 100 מנסים את הטרנדים הכי ויראליים – הרשמה לצילומים',
   days: ['13.12', '14.12'],
-  hours: ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00',
+  dayNames: { '13.12': 'יום ראשון', '14.12': 'יום שני' },
+  // סלוטים של 30 דקות לאורך 10 שעות: 10:00 עד 20:00 (שעת התחלה אחרונה 19:30)
+  slots: (function () { var a = []; for (var m = 10 * 60; m < 20 * 60; m += 30) a.push(('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2)); return a; })(),
+  studios: 3,                          // משתתפים במקביל בכל סלוט
+  // תאימות לאחור – רשימת השעות של הגרסה הקודמת
+  legacyHours: ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00',
           '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00',
           '19:30', '20:00', '20:30', 'גמיש'],
   maxPhotoBytes: 30 * 1024 * 1024,
@@ -33,9 +38,10 @@ var STATUS = {
 };
 
 var HEADERS = ['מס׳', 'תאריך ושעת הרשמה', 'מי הפנה אותך?', 'שם מלא של המשתתף', 'גיל המשתתף',
-               'טלפון ליצירת קשר', 'באיזה יום אפשר להגיע?', 'באיזו שעה נוח להגיע?',
+               'טלפון ליצירת קשר', 'פנוי ביום ראשון 13.12', 'פנוי ביום שני 14.12', 'כמה חלונות סימן',
                'תמונה', 'סרטון', 'סטטוס', 'מזהה הגשה'];
-var COL = { num: 1, ts: 2, ref: 3, name: 4, age: 5, phone: 6, days: 7, hour: 8, photo: 9, video: 10, status: 11, id: 12 };
+var COL = { num: 1, ts: 2, ref: 3, name: 4, age: 5, phone: 6, av1: 7, av2: 8, nslots: 9, photo: 10, video: 11, status: 12, id: 13 };
+var SHEET_MAIN = 'נרשמים', SHEET_AGES = 'כיסוי גילאים', SHEET_PLAN = 'שיבוץ מוצע';
 
 function props_() { return PropertiesService.getScriptProperties(); }
 function cache_() { return CacheService.getScriptCache(); }
@@ -82,17 +88,23 @@ function setup() {
   p.setProperty('SHEET_ID', ss.getId());
   if (!p.getProperty('OWNER_EMAIL')) p.setProperty('OWNER_EMAIL', Session.getEffectiveUser().getEmail());
 
-  var sh = ss.getSheets()[0];
-  sh.setName('נרשמים');
+  var sh = ss.getSheetByName(SHEET_MAIN) || ss.getSheets()[0];
+  sh.setName(SHEET_MAIN);
   sh.setRightToLeft(true);
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS])
     .setFontWeight('bold').setBackground('#5B3DF5').setFontColor('#ffffff')
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
   sh.setFrozenRows(1);
   sh.setRowHeight(1, 40);
-  [50, 130, 150, 180, 70, 130, 130, 110, 100, 100, 170, 120].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  [45, 120, 130, 170, 60, 115, 210, 210, 80, 90, 90, 160, 110].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
   sh.getRange(1, COL.id, sh.getMaxRows(), 1).setFontColor('#999999').setFontSize(8);
-  if (!sh.getFilter()) sh.getRange(1, 1, sh.getMaxRows(), HEADERS.length).createFilter();
+  if (sh.getFilter()) sh.getFilter().remove();
+  sh.getRange(1, 1, sh.getMaxRows(), HEADERS.length).createFilter();
+  sh.getRange(2, COL.av1, sh.getMaxRows() - 1, 2).setWrap(true);
+  setupAgesSheet_(ss);
+  setupPlanSheet_(ss);
+  var hasEdit = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'onPlanEdit'; });
+  if (!hasEdit) ScriptApp.newTrigger('onPlanEdit').forSpreadsheet(ss).onEdit().create();
   // הגנה רכה: כל עריכה ידנית מציגה אזהרה (מונע מחיקה בטעות)
   if (!sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).length) {
     sh.protect().setDescription('הטבלה מתעדכנת אוטומטית מהטופס – לא למחוק שורות').setWarningOnly(true);
@@ -120,18 +132,19 @@ function backupFolder_() { return DriveApp.getFolderById(props_().getProperty('B
 function writeBackup_(rec) {
   var name = rec.id + '.json';
   var content = JSON.stringify(rec, null, 2);
-  var it = backupFolder_().getFilesByName(name);
-  if (it.hasNext()) it.next().setContent(content);
-  else backupFolder_().createFile(name, content, MimeType.PLAIN_TEXT);
+  var it = backupFolder_().getFilesByName(name), found = false;
+  while (it.hasNext()) { it.next().setContent(content); found = true; }   // אם נוצר כפול – כולם מתעדכנים
+  if (!found) backupFolder_().createFile(name, content, MimeType.PLAIN_TEXT);
 }
 
 function readBackup_(id) {
-  var it = backupFolder_().getFilesByName(id + '.json');
-  return it.hasNext() ? JSON.parse(it.next().getBlob().getDataAsString()) : null;
+  var it = backupFolder_().getFilesByName(id + '.json'), best = null, bestT = -1;
+  while (it.hasNext()) { var f = it.next(), t = f.getLastUpdated().getTime(); if (t > bestT) { best = f; bestT = t; } }
+  return best ? JSON.parse(best.getBlob().getDataAsString()) : null;
 }
 
 // ---------- טבלה ----------
-function sheet_() { return SpreadsheetApp.openById(props_().getProperty('SHEET_ID')).getSheetByName('נרשמים') ||
+function sheet_() { return SpreadsheetApp.openById(props_().getProperty('SHEET_ID')).getSheetByName(SHEET_MAIN) ||
                            SpreadsheetApp.openById(props_().getProperty('SHEET_ID')).getSheets()[0]; }
 
 function findRow_(sh, id) {
@@ -147,10 +160,44 @@ function link_(fileId, label) {
 }
 
 function rowValues_(rec, num) {
+  var av = availabilityOf_(rec);
   return [
-    num, rec.createdAt, rec.referrer, rec.name, rec.age, "'" + rec.contactPhone, rec.days.join(', '),
-    "'" + rec.hour, link_(rec.photoId, '📷 תמונה'), link_(rec.videoId, '🎬 סרטון'), rec.status, rec.id
+    num, rec.createdAt, rec.referrer, rec.name, rec.age, "'" + rec.contactPhone,
+    "'" + rangesText_(av[CONFIG.days[0]]), "'" + rangesText_(av[CONFIG.days[1]]),
+    av[CONFIG.days[0]].length + av[CONFIG.days[1]].length,
+    link_(rec.photoId, '📷 תמונה'), link_(rec.videoId, '🎬 סרטון'), rec.status, rec.id
   ];
+}
+
+// זמינות של הרשמה (כולל המרה מהפורמט הישן: יום + שעה אחת)
+function availabilityOf_(rec) {
+  var av = {}; CONFIG.days.forEach(function (d) { av[d] = []; });
+  if (rec.availability) {
+    CONFIG.days.forEach(function (d) { av[d] = (rec.availability[d] || []).filter(function (t) { return CONFIG.slots.indexOf(t) !== -1; }); });
+  } else if (rec.days) {
+    rec.days.forEach(function (d) {
+      if (!av[d]) return;
+      if (rec.hour === 'גמיש') av[d] = CONFIG.slots.slice();
+      else if (CONFIG.slots.indexOf(rec.hour) !== -1) av[d] = [rec.hour];
+      else if (rec.hour) av[d] = [];
+    });
+  }
+  return av;
+}
+
+// "10:00, 10:30, 11:00, 15:00" => "10:00–11:30, 15:00–15:30"
+function rangesText_(times) {
+  if (!times || !times.length) return '—';
+  if (times.length === CONFIG.slots.length) return 'כל היום (10:00–20:00)';
+  var idx = times.map(function (t) { return CONFIG.slots.indexOf(t); }).sort(function (a, b) { return a - b; });
+  var out = [], s = idx[0], prev = idx[0];
+  var end = function (i) { var m = 10 * 60 + (i + 1) * 30; return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2); };
+  for (var k = 1; k <= idx.length; k++) {
+    if (k < idx.length && idx[k] === prev + 1) { prev = idx[k]; continue; }
+    out.push(CONFIG.slots[s] + '–' + end(prev));
+    if (k < idx.length) { s = idx[k]; prev = idx[k]; }
+  }
+  return out.join(', ');
 }
 
 // כתיבה/עדכון שורה לפי מזהה (idempotent)
@@ -161,6 +208,10 @@ function upsertRow_(rec) {
     var sh = sheet_();
     var row = findRow_(sh, rec.id);
     var num;
+    if (row) {   // מחיקת שורות כפולות עם אותו מזהה (אם נוצרו)
+      var ids2 = sh.getRange(2, COL.id, sh.getLastRow() - 1, 1).getValues();
+      for (var q = ids2.length - 1; q >= 0; q--) if (String(ids2[q][0]) === rec.id && q + 2 !== row && q + 2 < row) { sh.deleteRow(q + 2); row--; }
+    }
     if (!row) { row = sh.getLastRow() + 1; num = row - 1; }
     else num = sh.getRange(row, COL.num).getValue() || row - 1;
     var v = rowValues_(rec, num);
@@ -199,11 +250,23 @@ function validate_(data) {
   rec.age = Number(data.age);
   if (!(rec.age >= 1 && rec.age <= 100 && Math.floor(rec.age) === rec.age)) throw new Error('יש לבחור גיל');
   rec.contactPhone = normalizePhone_(data.contactPhone);
-  var day = data.day || (data.days && data.days.length === 1 ? data.days[0] : '');
-  if (CONFIG.days.indexOf(day) === -1) throw new Error('יש לבחור יום אחד');
-  rec.days = [day];
-  if (CONFIG.hours.indexOf(data.hour) === -1) throw new Error('יש לבחור שעה');
-  rec.hour = data.hour;
+  if (data.availability) {
+    rec.availability = {}; var total = 0;
+    CONFIG.days.forEach(function (d) {
+      var seen = {};
+      rec.availability[d] = (data.availability[d] || []).filter(function (t) {
+        if (CONFIG.slots.indexOf(t) === -1 || seen[t]) return false; seen[t] = 1; return true;
+      }).sort();
+      total += rec.availability[d].length;
+    });
+    if (!total) throw new Error('יש לסמן לפחות חלון זמן אחד שבו אפשר להגיע');
+  } else {   // גרסה קודמת של הטופס
+    var day = data.day || (data.days && data.days.length === 1 ? data.days[0] : '');
+    if (CONFIG.days.indexOf(day) === -1) throw new Error('יש לבחור יום אחד');
+    if (CONFIG.legacyHours.indexOf(data.hour) === -1) throw new Error('יש לבחור שעה');
+    rec.days = [day]; rec.hour = data.hour;
+    rec.availability = availabilityOf_(rec);
+  }
   return rec;
 }
 
@@ -366,7 +429,7 @@ function finalize(token, photoId, videoId, videoFailed, data) {
   if (!rec) throw new Error('ההרשמה לא נמצאה. פנו להפקה.');
   if (data) {   // הפרטים העדכניים מהטופס (אם שונו אחרי השמירה הראשונה)
     var upd = validate_(data);
-    ['referrer', 'name', 'age', 'contactPhone', 'days', 'hour'].forEach(function (k) { rec[k] = upd[k]; });
+    ['referrer', 'name', 'age', 'contactPhone', 'availability', 'days', 'hour'].forEach(function (k) { rec[k] = upd[k]; });
     rec.wantsPhoto = !!data.wantsPhoto; rec.wantsVideo = !!data.wantsVideo;
   }
   var p = checkUploadedFile_(photoId, subId, 'photo');
@@ -401,12 +464,9 @@ function reconcile() {
   if (last >= 2) sh.getRange(2, COL.id, last - 1, 1).getValues().forEach(function (r) { idsInSheet[String(r[0])] = true; });
 
   var restored = [], fixed = [];
-  var bit = backupFolder_().getFiles();
-  while (bit.hasNext()) {
-    var bf = bit.next();
-    var rec;
-    try { rec = JSON.parse(bf.getBlob().getDataAsString()); } catch (e) { continue; }
-    if (!rec || !rec.id) continue;
+  var all = allBackups_();
+  for (var bi = 0; bi < all.length; bi++) {
+    var rec = all[bi];
     var changed = false;
     var fs = filesBySub[rec.id] || {};
     if (!rec.photoId && fs.photo) { rec.photoId = fs.photo; changed = true; }
@@ -428,4 +488,179 @@ function reconcile() {
   }
   if (restored.length) alertOwner_('שוחזרו שורות לטבלה', 'ההרשמות הבאות היו חסרות בטבלה ושוחזרו מהגיבוי:\n' + restored.join('\n'));
   return { restored: restored.length, fixed: fixed.length };
+}
+
+
+// ====================================================================
+// כיסוי גילאים – טבלה חיה (נוסחאות) של כמה מועמדים יש לכל גיל 1–100
+// ====================================================================
+function setupAgesSheet_(ss) {
+  var sh = ss.getSheetByName(SHEET_AGES) || ss.insertSheet(SHEET_AGES);
+  sh.clear(); sh.setRightToLeft(true);
+  var M = "'" + SHEET_MAIN + "'";
+  sh.getRange(1, 1, 1, 4).setValues([['גיל', 'כמה מועמדים', 'מועמדים (שם · טלפון)', '']]);
+  sh.getRange('F1:G1').setValues([['גילאים בלי אף מועמד', '=COUNTIF(B2:B101,0)']]);
+  sh.getRange('F2:G2').setValues([['גילאים עם מועמד אחד בלבד', '=COUNTIF(B2:B101,1)']]);
+  sh.getRange('F3:G3').setValues([['גילאים מכוסים', '=COUNTIF(B2:B101,">0")&" / 100"']]);
+  var rows = [];
+  for (var a = 1; a <= 100; a++) {
+    var r = a + 1;
+    rows.push([a,
+      '=COUNTIF(' + M + '!E:E,A' + r + ')',
+      '=IFERROR(TEXTJOIN("  |  ",TRUE,FILTER(' + M + '!D:D&" · "&' + M + '!F:F,' + M + '!E:E=A' + r + ')),"")', '']);
+  }
+  sh.getRange(2, 1, 100, 4).setValues(rows);
+  sh.getRange('A1:G1').setFontWeight('bold');
+  sh.getRange('A1:C1').setBackground('#5B3DF5').setFontColor('#fff');
+  sh.getRange('F1:G3').setBackground('#F1EEFF').setFontWeight('bold');
+  sh.setFrozenRows(1); sh.setColumnWidth(1, 50); sh.setColumnWidth(2, 100); sh.setColumnWidth(3, 520); sh.setColumnWidth(6, 200);
+  sh.getRange('A2:B101').setHorizontalAlignment('center');
+  var rng = sh.getRange('A2:C101');
+  sh.setConditionalFormatRules([
+    SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$B2=0').setBackground('#FDE7EA').setRanges([rng]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$B2=1').setBackground('#FFF6DA').setRanges([rng]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$B2>=2').setBackground('#E7F7EF').setRanges([rng]).build()
+  ]);
+  sh.protect().setDescription('מחושב אוטומטית').setWarningOnly(true);
+}
+
+// ====================================================================
+// שיבוץ מוצע – משבץ מועמד אחד לכל גיל, עד 3 בכל סלוט, לפי הזמינות שסימנו
+// מופעל ע"י סימון התיבה בגיליון "שיבוץ מוצע"
+// ====================================================================
+function setupPlanSheet_(ss) {
+  var sh = ss.getSheetByName(SHEET_PLAN) || ss.insertSheet(SHEET_PLAN);
+  sh.setRightToLeft(true);
+  sh.getRange('A1').setValue('לחץ על התיבה כדי לבנות שיבוץ מוצע מעודכן ←');
+  sh.getRange('B1').insertCheckboxes().setValue(false);
+  sh.getRange('A1:B1').setFontWeight('bold').setBackground('#FFF6DA');
+  sh.setColumnWidth(1, 330);
+}
+
+function onPlanEdit(e) {
+  try {
+    var r = e && e.range;
+    if (!r || r.getSheet().getName() !== SHEET_PLAN || r.getA1Notation() !== 'B1' || r.getValue() !== true) return;
+    r.getSheet().getRange('A1').setValue('בונה שיבוץ…');
+    buildPlan();
+  } catch (err) {
+    alertOwner_('תקלה בבניית שיבוץ', String(err));
+  }
+}
+
+// אלגוריתם זרימה מקסימלית: גיל → מועמד → סלוט (קיבולת = מספר אולפנים)
+function computePlan_(cands) {
+  var slotKeys = []; CONFIG.days.forEach(function (d) { CONFIG.slots.forEach(function (t) { slotKeys.push(d + ' ' + t); }); });
+  var byAge = {};
+  cands.forEach(function (c, i) { (byAge[c.age] = byAge[c.age] || []).push(i); });
+  var slotLoad = {}, candSlot = {}, ageCand = {};
+  // גילאים עם הכי מעט אפשרויות קודם
+  var ages = Object.keys(byAge).map(Number).sort(function (a, b) {
+    var oa = byAge[a].reduce(function (s, i) { return s + cands[i].slots.length; }, 0);
+    var ob = byAge[b].reduce(function (s, i) { return s + cands[i].slots.length; }, 0);
+    return oa - ob || a - b;
+  });
+  function tryAge(age, seenSlots) {
+    var list = byAge[age].slice().sort(function (x, y) { return cands[x].slots.length - cands[y].slots.length; });
+    for (var k = 0; k < list.length; k++) {
+      var ci = list[k];
+      if (candSlot[ci] !== undefined) continue;
+      var sl = cands[ci].slots;
+      for (var j = 0; j < sl.length; j++) {
+        var s = sl[j];
+        if (seenSlots[s]) continue;
+        seenSlots[s] = true;
+        if ((slotLoad[s] || 0) < CONFIG.studios) { slotLoad[s] = (slotLoad[s] || 0) + 1; candSlot[ci] = s; ageCand[age] = ci; return true; }
+        // ננסה להזיז מישהו מהסלוט המלא לסלוט אחר
+        var occupants = Object.keys(candSlot).filter(function (x) { return candSlot[x] === s; });
+        for (var o = 0; o < occupants.length; o++) {
+          var oc = Number(occupants[o]), oage = cands[oc].age;
+          delete candSlot[oc]; delete ageCand[oage]; slotLoad[s]--;
+          if (tryAge(oage, seenSlots)) { slotLoad[s]++; candSlot[ci] = s; ageCand[age] = ci; return true; }
+          candSlot[oc] = s; ageCand[oage] = oc; slotLoad[s]++;
+        }
+      }
+    }
+    return false;
+  }
+  ages.forEach(function (age) { tryAge(age, {}); });
+  return { candSlot: candSlot, ageCand: ageCand, slotKeys: slotKeys };
+}
+
+function buildPlan() {
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var main = sheet_(), last = main.getLastRow();
+    var data = last >= 2 ? main.getRange(2, 1, last - 1, HEADERS.length).getValues() : [];
+    var cands = [];
+    var seenIds = {};
+    var ids = data.map(function (r) { return String(r[COL.id - 1]); }).filter(function (id) { if (!id || seenIds[id]) return false; seenIds[id] = 1; return true; });
+    ids.forEach(function (id, i) {
+      var rec = readBackup_(id); if (!rec) return;
+      var av = availabilityOf_(rec), slots = [];
+      CONFIG.days.forEach(function (d) { av[d].forEach(function (t) { slots.push(d + ' ' + t); }); });
+      if (!slots.length || !(rec.age >= 1 && rec.age <= 100)) return;
+      cands.push({ age: Number(rec.age), name: String(rec.name).replace(/^'/, ''), phone: rec.contactPhone, slots: slots });
+    });
+    var res = computePlan_(cands);
+    var sh = main.getParent().getSheetByName(SHEET_PLAN);
+    sh.getRange(2, 1, Math.max(sh.getMaxRows() - 1, 1), 8).clear();
+    var out = [['יום', 'שעה'].concat(['אולפן 1', 'אולפן 2', 'אולפן 3'].slice(0, CONFIG.studios))];
+    res.slotKeys.forEach(function (k) {
+      var inSlot = Object.keys(res.candSlot).filter(function (ci) { return res.candSlot[ci] === k; }).map(function (ci) {
+        var c = cands[ci]; return 'גיל ' + c.age + ' · ' + c.name + ' · ' + c.phone;
+      });
+      var parts = k.split(' ');
+      var row = [CONFIG.dayNames[parts[0]] + ' ' + parts[0], "'" + parts[1]];
+      for (var s = 0; s < CONFIG.studios; s++) row.push(inSlot[s] || '');
+      out.push(row);
+    });
+    sh.getRange(3, 1, out.length, out[0].length).setValues(out);
+    sh.getRange(3, 1, 1, out[0].length).setFontWeight('bold').setBackground('#5B3DF5').setFontColor('#fff');
+    var covered = Object.keys(res.ageCand).length;
+    var missing = [], noFit = [];
+    for (var a = 1; a <= 100; a++) {
+      var has = cands.some(function (c) { return c.age === a; });
+      if (!has) missing.push(a); else if (res.ageCand[a] === undefined) noFit.push(a);
+    }
+    sh.getRange('A1').setValue('לחץ על התיבה כדי לבנות שיבוץ מוצע מעודכן ← (עודכן ' + now_() + ')');
+    sh.getRange('B1').setValue(false);
+    sh.getRange('D1').setValue('שובצו ' + covered + ' / 100 גילאים');
+    sh.getRange('D2').setValue(missing.length ? 'אין עדיין מועמדים לגילאים: ' + missing.join(', ') : 'יש מועמדים לכל הגילאים ✓');
+    sh.getRange('E2').setValue(noFit.length ? 'יש מועמדים אבל לא נמצא להם סלוט פנוי: ' + noFit.join(', ') : '');
+    sh.getRange('D1:E2').setFontWeight('bold');
+    [130, 60, 260, 260, 260].forEach(function (w, i) { sh.setColumnWidth(i + 1 + (i ? 0 : 0), w); });
+    sh.setColumnWidth(1, 330);
+    return { covered: covered, missing: missing.length, noFit: noFit.length };
+  } finally { lock.releaseLock(); }
+}
+
+// כל ההרשמות מהגיבוי, בלי כפילויות (אם יש שני קבצים לאותה הרשמה – העדכני ביותר)
+function allBackups_() {
+  var byId = {}, it = backupFolder_().getFiles();
+  while (it.hasNext()) {
+    var f = it.next(), r;
+    try { r = JSON.parse(f.getBlob().getDataAsString()); } catch (e) { continue; }
+    if (!r || !r.id) continue;
+    var t = f.getLastUpdated().getTime();
+    if (!byId[r.id] || t > byId[r.id].t) byId[r.id] = { t: t, rec: r };
+  }
+  return Object.keys(byId).map(function (k) { return byId[k].rec; });
+}
+
+// בנייה מחדש של הטבלה הראשית מכל קבצי הגיבוי (מעבר לפורמט החדש)
+function rebuildMainFromBackups() {
+  var recs = allBackups_();
+  recs.sort(function (a, b) { return (a.createdMs || 0) - (b.createdMs || 0); });
+  var sh = sheet_();
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, Math.max(sh.getLastColumn(), HEADERS.length)).clearContent().setBackground(null);
+    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    if (recs.length) {
+      var rows = recs.map(function (r, i) { return rowValues_(r, i + 1); });
+      sh.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
+    }
+  } finally { lock.releaseLock(); }
+  return recs.length;
 }

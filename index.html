@@ -76,6 +76,26 @@
   .savestate.ok { color:var(--ok); }
   .btn2 { width:100%; margin-top:12px; min-height:50px; padding:12px 18px; font:inherit; font-weight:700; font-size:16px; border-radius:12px; border:1.5px solid var(--brand); background:#fff; color:var(--brand); cursor:pointer; }
   .btn2.solid { background:var(--brand); color:#fff; }
+  .phone-row { display:flex; gap:8px; direction:ltr; }
+  .phone-row select { flex:0 0 104px; width:104px; text-align:center; font-weight:700; padding-left:26px; }
+  .phone-row input { flex:1 1 auto; min-width:0; }
+  .daybox { border:1.5px solid var(--line); border-radius:14px; padding:12px; margin-top:12px; }
+  .daybox h3 { margin:0 0 10px; font-size:16px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .daybox h3 small { font-weight:500; color:var(--muted); font-size:13px; }
+  .quick { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .quick button { font:inherit; font-size:13.5px; font-weight:700; padding:8px 12px; min-height:38px; border-radius:99px; border:1.5px solid var(--brand); background:#fff; color:var(--brand); cursor:pointer; }
+  .quick button.on { background:var(--brand); color:#fff; }
+  .quick button.clear { border-color:var(--line); color:var(--muted); }
+  .chips.slots { grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+  .chips.slots .chip span { min-height:42px; font-size:15px; }
+  .avcount { font-size:14px; color:var(--muted); margin-top:10px; font-weight:500; }
+  .avcount.ok { color:var(--ok); }
+  .confirm-box { text-align:right; }
+  .confirm-box h2 { text-align:center; }
+  .confirm-box .summary { margin-top:12px; }
+  .confirm-box .btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+  .confirm-box .btns button { margin:0; }
+  @media (max-width:380px) { .chips.slots { grid-template-columns:repeat(3,minmax(0,1fr)); } }
   .foot { text-align:center; color:var(--muted); font-size:12.5px; margin-top:22px; }
   @media (max-width:380px) { .chips.hours { grid-template-columns:repeat(3,minmax(0,1fr)); } .hero h1 { font-size:23px; } }
   @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
@@ -111,21 +131,20 @@
 
     <div class="card" data-f="phone">
       <label class="q" for="phone" id="phone-label">טלפון ליצירת קשר (לילדים: טלפון של ההורה)<span class="req">*</span></label>
-      <input type="tel" id="phone" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="050-1234567" enterkeyhint="done" aria-describedby="phone-err">
+      <div class="phone-row">
+        <select id="prefix" aria-label="קידומת"></select>
+        <input type="tel" id="phonenum" inputmode="numeric" maxlength="7" autocomplete="tel-local" placeholder="1234567" enterkeyhint="done" aria-label="שאר המספר" aria-describedby="phone-err">
+      </div>
       <div class="err" id="phone-err"></div>
       <div class="okmark">✓ מספר תקין</div>
     </div>
 
-    <div class="card" data-f="day" role="radiogroup" aria-labelledby="day-q">
-      <div class="q" id="day-q">באיזה יום אפשר להגיע?<span class="req">*</span></div>
-      <div class="chips days" id="days"></div>
-      <div class="err">יש לבחור יום</div>
-    </div>
-
-    <div class="card" data-f="hour" role="radiogroup" aria-labelledby="hour-q">
-      <div class="q" id="hour-q">באיזו שעה נוח להגיע?<span class="req">*</span></div>
-      <div class="chips hours" id="hours"></div>
-      <div class="err">יש לבחור שעה</div>
+    <div class="card" data-f="avail">
+      <div class="q">מתי אפשר להגיע?<span class="req">*</span></div>
+      <div class="hint">סמנו את <b>כל</b> החלונות שמתאימים לכם, בשני הימים. הצילום עצמו כחצי שעה, וככל שתסמנו יותר – יותר קל לנו לשבץ אתכם. נחזור אליכם עם שעה סופית.</div>
+      <div id="avail"></div>
+      <div class="avcount" id="avcount">עוד לא סומנו חלונות</div>
+      <div class="err">יש לסמן לפחות חלון זמן אחד</div>
     </div>
 
     <div class="card" data-f="photo">
@@ -164,10 +183,22 @@
     <div class="summary" id="summary"></div>
     <div class="savestate" id="savestate">שומרים את הפרטים…</div>
     <button class="btn2 solid" id="another" type="button">הרשמת משתתף נוסף</button>
-    <div class="muted" style="margin-top:8px;font-size:13px">הטלפון ו"מי הפנה" יישארו ממולאים</div>
+    <div class="muted" style="margin-top:8px;font-size:13px">הטלפון, "מי הפנה" והזמינות יישארו ממולאים</div>
   </div>
 
   <div class="foot">הסולטיז · הפרטים משמשים לתיאום הצילומים בלבד</div>
+</div>
+
+<div class="overlay" id="confirm" role="dialog" aria-modal="true" aria-labelledby="cf-title">
+  <div class="box confirm-box">
+    <h2 id="cf-title">הפרטים נכונים?</h2>
+    <div class="muted" style="text-align:center">בדקו במיוחד את השם, הגיל והטלפון – דרכם ניצור קשר</div>
+    <div class="summary" id="cf-summary"></div>
+    <div class="btns">
+      <button type="button" class="btn2" id="cf-edit">תיקון</button>
+      <button type="button" class="btn2 solid" id="cf-ok">כן, לשלוח</button>
+    </div>
+  </div>
 </div>
 
 <div class="overlay" id="ov" role="dialog" aria-live="polite">
@@ -183,8 +214,9 @@
 {
 var API_URL = 'https://script.google.com/macros/s/AKfycbwDZcKJQpX-j3Tupl0E_sKlp1iu8PweKkx1-GOjdZ6pidbLdgtBySCoDtMZDXz9LSf7WQ/exec';
 var DAYS = [{ v: '13.12', label: 'יום ראשון', d: '13.12' }, { v: '14.12', label: 'יום שני', d: '14.12' }];
-var HOURS = ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00',
-             '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', 'גמיש'];
+var SLOTS = (function () { var a = []; for (var m = 600; m < 1200; m += 30) a.push(('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2)); return a; })();
+var BLOCKS = [{ label: 'בוקר 10–13', from: '10:00', to: '13:00' }, { label: 'צהריים 13–16', from: '13:00', to: '16:00' }, { label: 'ערב 16–20', from: '16:00', to: '20:00' }];
+var PREFIXES = { 'נייד': ['050', '051', '052', '053', '054', '055', '056', '058', '059'], 'קווי': ['02', '03', '04', '08', '09', '072', '073', '074', '076', '077', '078', '079'] };
 var MAX_VIDEO_BYTES = 300 * 1024 * 1024, MAX_VIDEO_SEC = 65, CHUNK = 4 * 1024 * 1024;
 var LS = 'saltiz_signup_draft_v2';
 
@@ -208,14 +240,16 @@ function fmtMB(b) { return (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + 'MB'; }
 function sleep(ms) { return new Promise(function (s) { setTimeout(s, ms); }); }
 function errMsg(e) { return (e && e.message ? e.message : String(e)).replace(/^(Error|Exception):\s*/, ''); }
 
-// טלפון ישראלי
-function phoneDigits(v) { var d = String(v || '').replace(/\D/g, ''); if (d.indexOf('972') === 0) d = '0' + d.substring(3); return d; }
-function phoneValid(v) { var d = phoneDigits(v); return /^05\d{8}$/.test(d) || /^07\d{8}$/.test(d) || /^0[2-489]\d{7}$/.test(d); }
-function phoneFormat(v) {
-  var d = phoneDigits(v);
-  if (/^0(5|7)/.test(d)) return d.length > 3 ? d.substring(0, 3) + '-' + d.substring(3) : d;
-  if (/^0[2-489]/.test(d)) return d.length > 2 ? d.substring(0, 2) + '-' + d.substring(2) : d;
-  return d;
+// טלפון ישראלי: קידומת מהרשימה + 7 ספרות
+function allPrefixes() { return PREFIXES['נייד'].concat(PREFIXES['קווי']); }
+function phoneValue() { var n = $('phonenum').value.replace(/\D/g, ''); return n ? $('prefix').value + '-' + n : ''; }
+function phoneValid() { return /^\d{7}$/.test($('phonenum').value) && allPrefixes().indexOf($('prefix').value) !== -1; }
+// אם הדביקו/מילאו מספר מלא (0501234567 / +972...) – מפרקים לקידומת + 7 ספרות
+function splitFullNumber(raw) {
+  var d = String(raw || '').replace(/\D/g, '');
+  if (d.indexOf('972') === 0) d = '0' + d.substring(3);
+  var pf = allPrefixes().sort(function (a, b) { return b.length - a.length; }).filter(function (p) { return d.indexOf(p) === 0; })[0];
+  return pf ? { prefix: pf, rest: d.substring(pf.length) } : null;
 }
 function nameError(v) {
   var s = String(v || '').replace(/\s+/g, ' ').trim();
@@ -224,12 +258,29 @@ function nameError(v) {
   if (s.split(' ').length < 2) return 'יש לכתוב שם פרטי ושם משפחה';
   return '';
 }
-function radioVal(name) { var r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ''; }
+function availability() {
+  var av = {}; DAYS.forEach(function (d) { av[d.v] = []; });
+  document.querySelectorAll('input[name="slot"]:checked').forEach(function (c) { var p = c.value.split('|'); av[p[0]].push(p[1]); });
+  return av;
+}
+function availCount(av) { return DAYS.reduce(function (s, d) { return s + av[d.v].length; }, 0); }
+function rangesText(times) {
+  if (!times.length) return '';
+  if (times.length === SLOTS.length) return 'כל היום';
+  var idx = times.map(function (t) { return SLOTS.indexOf(t); }).sort(function (a, b) { return a - b; }), out = [], s = idx[0], prev = idx[0];
+  var end = function (i) { var m = 600 + (i + 1) * 30; return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2); };
+  for (var k = 1; k <= idx.length; k++) {
+    if (k < idx.length && idx[k] === prev + 1) { prev = idx[k]; continue; }
+    out.push(SLOTS[s] + '–' + end(prev));
+    if (k < idx.length) { s = idx[k]; prev = idx[k]; }
+  }
+  return out.join(', ');
+}
 
 function formData() {
   return {
     referrer: $('referrer').value.replace(/\s+/g, ' ').trim(), name: $('name').value.replace(/\s+/g, ' ').trim(),
-    age: $('age').value, contactPhone: phoneFormat($('phone').value), day: radioVal('day'), hour: radioVal('hour'),
+    age: $('age').value, contactPhone: phoneValue(), availability: availability(),
     wantsPhoto: !!files.photo, wantsVideo: !!files.video
   };
 }
@@ -237,43 +288,71 @@ function formData() {
 // ---------- בניית הטופס ----------
 var draft = lsGet() || {};
 if (!draft.subId) draft.subId = uuid();
-function saveDraft() { var d = formData(); d.subId = draft.subId; lsSet(d); }
+function saveDraft() { var d = formData(); d.subId = draft.subId; d.prefix = $('prefix').value; d.phonenum = $('phonenum').value; lsSet(d); }
 
 (function init() {
   var age = $('age');
   for (var i = 1; i <= 100; i++) { var o = document.createElement('option'); o.value = i; o.textContent = i === 1 ? 'שנה' : i; age.appendChild(o); }
-  $('days').innerHTML = DAYS.map(function (d) {
-    return '<label class="chip"><input type="radio" name="day" value="' + d.v + '"><span>' + d.label + '<small>' + d.d + '</small></span></label>';
+  // קידומות
+  $('prefix').innerHTML = Object.keys(PREFIXES).map(function (g) {
+    return '<optgroup label="' + g + '">' + PREFIXES[g].map(function (p) { return '<option value="' + p + '">' + p + '</option>'; }).join('') + '</optgroup>';
   }).join('');
-  $('hours').innerHTML = HOURS.map(function (h) {
-    return '<label class="chip' + (h === 'גמיש' ? ' flex' : '') + '"><input type="radio" name="hour" value="' + h + '"><span>' + (h === 'גמיש' ? 'גמיש – כל שעה מתאימה' : h) + '</span></label>';
+  // לוח זמינות
+  $('avail').innerHTML = DAYS.map(function (d) {
+    return '<div class="daybox" data-day="' + d.v + '"><h3>' + d.label + ' ' + d.d + ' <small class="daycount"></small></h3>' +
+      '<div class="quick"><button type="button" data-all="1">כל היום</button>' +
+      BLOCKS.map(function (b, i) { return '<button type="button" data-block="' + i + '">' + b.label + '</button>'; }).join('') +
+      '<button type="button" class="clear" data-clear="1">ניקוי</button></div>' +
+      '<div class="chips slots">' + SLOTS.map(function (t) {
+        return '<label class="chip"><input type="checkbox" name="slot" value="' + d.v + '|' + t + '"><span>' + t + '</span></label>';
+      }).join('') + '</div></div>';
   }).join('');
+  document.querySelectorAll('.daybox').forEach(function (box) {
+    var boxes = box.querySelectorAll('input[name="slot"]');
+    box.querySelector('.quick').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.clear) boxes.forEach(function (c) { c.checked = false; });
+      else if (b.dataset.all) { var all = Array.prototype.every.call(boxes, function (c) { return c.checked; }); boxes.forEach(function (c) { c.checked = !all; }); }
+      else {
+        var bl = BLOCKS[b.dataset.block], inBl = Array.prototype.filter.call(boxes, function (c) { var t = c.value.split('|')[1]; return t >= bl.from && t < bl.to; });
+        var on = inBl.every(function (c) { return c.checked; }); inBl.forEach(function (c) { c.checked = !on; });
+      }
+      onAvailChange();
+    });
+    boxes.forEach(function (c) { c.addEventListener('change', onAvailChange); });
+  });
 
   // שחזור טיוטה (אם הדף רוענן)
   $('referrer').value = draft.referrer || ''; $('name').value = draft.name || ''; $('age').value = draft.age || '';
-  $('phone').value = draft.contactPhone || '';
-  if (draft.day) { var dr = document.querySelector('input[name="day"][value="' + draft.day + '"]'); if (dr) dr.checked = true; }
-  if (draft.hour) { var hr = document.querySelector('input[name="hour"][value="' + draft.hour + '"]'); if (hr) hr.checked = true; }
+  if (draft.prefix && allPrefixes().indexOf(draft.prefix) !== -1) $('prefix').value = draft.prefix;
+  $('phonenum').value = draft.phonenum || '';
+  if (!draft.phonenum && draft.contactPhone) { var sp = splitFullNumber(draft.contactPhone); if (sp) { $('prefix').value = sp.prefix; $('phonenum').value = sp.rest.substring(0, 7); } }
+  if (draft.availability) DAYS.forEach(function (d) { (draft.availability[d.v] || []).forEach(function (t) {
+    var c = document.querySelector('input[name="slot"][value="' + d.v + '|' + t + '"]'); if (c) c.checked = true; }); });
+  onAvailChange(true);
   updatePhoneLabel();
   saveDraft();
 
   // בדיקות חיות
-  var lastPhone = $('phone').value;
-  $('phone').addEventListener('input', function (ev) {
-    // הקלדה: לא נותנים לעבור 10 ספרות. הדבקה ארוכה מדי: לא חותכים בשקט – מציגים שגיאה.
-    if (ev.inputType && ev.inputType.indexOf('insert') === 0 && ev.inputType !== 'insertFromPaste' && phoneDigits(this.value).length > 10) { this.value = lastPhone; return; }
-    var f = phoneFormat(this.value);
-    if (f !== this.value) this.value = f;
-    lastPhone = this.value;
-    if (phoneDigits(this.value).length > 10) { setBad('phone', 'יש יותר מדי ספרות. מספר נייד בישראל הוא 10 ספרות'); return; }
-    clearBad('phone');
-    card('phone').classList.toggle('good', phoneValid(this.value));
+  $('phonenum').addEventListener('input', function (ev) {
+    var raw = this.value, digits = raw.replace(/\D/g, '');
+    if (digits.length > 7) {   // הדביקו מספר מלא – מפרקים לקידומת + מספר
+      var sp = splitFullNumber(raw);
+      if (sp && sp.rest.length === 7) { $('prefix').value = sp.prefix; digits = sp.rest; }
+      else { digits = digits.substring(0, 7); setBad('phone', 'יש להזין 7 ספרות אחרי הקידומת'); }
+    }
+    if (digits !== raw) this.value = digits;
+    if (digits.length <= 7 && !card('phone').classList.contains('bad')) clearBad('phone');
+    card('phone').classList.toggle('good', phoneValid());
+    saveDraft();
   });
-  $('phone').addEventListener('blur', function () { if (this.value) checkField('phone'); });
+  $('phonenum').addEventListener('blur', function () { if (this.value) checkField('phone'); });
+  $('prefix').addEventListener('change', function () { card('phone').classList.toggle('good', phoneValid()); saveDraft(); $('phonenum').focus(); });
   $('name').addEventListener('blur', function () { if (this.value) checkField('name'); });
   $('age').addEventListener('change', updatePhoneLabel);
   document.querySelectorAll('#f input, #f select').forEach(function (el) {
-    var h = function () { var c = el.closest('.card'); if (c && el.id !== 'phone') c.classList.remove('bad'); saveDraft(); };
+    if (el.name === 'slot' || el.id === 'phonenum' || el.id === 'prefix') return;
+    var h = function () { var c = el.closest('.card'); if (c) c.classList.remove('bad'); saveDraft(); };
     el.addEventListener('input', h); el.addEventListener('change', h);
   });
   document.querySelectorAll('input[type=file]').forEach(function (inp) {
@@ -283,6 +362,24 @@ function saveDraft() { var d = formData(); d.subId = draft.subId; lsSet(d); }
   $('another').addEventListener('click', anotherParticipant);
   run('ping').catch(function () {});   // "מחמם" את השרת כדי שהשליחה תהיה מהירה
 })();
+
+function onAvailChange(silent) {
+  var av = availability(), n = availCount(av);
+  document.querySelectorAll('.daybox').forEach(function (box) {
+    var k = av[box.dataset.day].length;
+    box.querySelector('.daycount').textContent = k ? k + ' חלונות' : '';
+    box.querySelector('[data-all]').classList.toggle('on', k === SLOTS.length);
+    box.querySelectorAll('[data-block]').forEach(function (b) {
+      var bl = BLOCKS[b.dataset.block], inBl = SLOTS.filter(function (t) { return t >= bl.from && t < bl.to; });
+      b.classList.toggle('on', inBl.every(function (t) { return av[box.dataset.day].indexOf(t) !== -1; }));
+    });
+  });
+  var c = $('avcount');
+  c.textContent = n ? '✓ סומנו ' + n + ' חלונות' + (n < 4 ? ' – אם אפשר, סמנו עוד כדי שיהיה קל לשבץ' : '') : 'עוד לא סומנו חלונות';
+  c.className = 'avcount' + (n ? ' ok' : '');
+  if (n) clearBad('avail');
+  if (silent !== true) saveDraft();
+}
 
 function updatePhoneLabel() {
   var a = Number($('age').value);
@@ -295,18 +392,17 @@ function checkField(f) {
   if (f === 'name') { var m = nameError($('name').value); if (m) { setBad('name', m); return false; } clearBad('name'); return true; }
   if (f === 'age') { if (!$('age').value) { setBad('age'); return false; } return true; }
   if (f === 'phone') {
-    var v = $('phone').value;
-    if (!v.trim()) { setBad('phone', 'יש למלא מספר טלפון'); return false; }
-    if (!phoneValid(v)) { setBad('phone', 'המספר לא תקין. נייד: 10 ספרות שמתחילות ב-05, למשל 050-1234567'); return false; }
+    var n = $('phonenum').value.replace(/\D/g, '');
+    if (!n) { setBad('phone', 'יש למלא מספר טלפון'); return false; }
+    if (n.length !== 7) { setBad('phone', 'אחרי הקידומת צריך בדיוק 7 ספרות (כרגע ' + n.length + ')'); return false; }
     clearBad('phone'); card('phone').classList.add('good'); return true;
   }
-  if (f === 'day') { if (!radioVal('day')) { setBad('day'); return false; } return true; }
-  if (f === 'hour') { if (!radioVal('hour')) { setBad('hour'); return false; } return true; }
+  if (f === 'avail') { if (!availCount(availability())) { setBad('avail'); return false; } return true; }
   return true;
 }
 function validateAll(scroll) {
   var first = null;
-  ['name', 'age', 'phone', 'day', 'hour'].forEach(function (f) { if (!checkField(f) && !first) first = card(f); });
+  ['name', 'age', 'phone', 'avail'].forEach(function (f) { if (!checkField(f) && !first) first = card(f); });
   if (first && scroll) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
   return !first;
 }
@@ -464,7 +560,15 @@ $('f').addEventListener('submit', async function (ev) {
   if ($('website').value) return;                      // מלכודת לבוטים
   if (!validateAll(true)) return;
   if (!session && !prebegin && !captchaToken) { notice('יש לסמן "אני לא רובוט" לפני השליחה'); return; }
+  $('cf-summary').innerHTML = summaryHtml(formData(), true);
+  $('confirm').style.display = 'flex';
+  $('cf-ok').focus();
+});
+$('cf-edit').addEventListener('click', function () { $('confirm').style.display = 'none'; card('name').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+$('cf-ok').addEventListener('click', function () { $('confirm').style.display = 'none'; doSubmit(); });
 
+async function doSubmit() {
+  if (busy) return;
   busy = true; $('go').disabled = true; $('ov').style.display = 'flex';
   setProgress(2, 'שומרים את הפרטים…', 'לא לסגור את הדף');
   var stage = 'save', data = formData();
@@ -514,18 +618,25 @@ $('f').addEventListener('submit', async function (ev) {
       captchaToken = ''; prebegin = null;
     }
   }
-});
+}
+
+function summaryHtml(data, before) {
+  var whenRows = DAYS.filter(function (d) { return data.availability[d.v].length; }).map(function (d) {
+    return '<div><b>' + d.label + ' ' + d.d + ':</b> ' + esc(rangesText(data.availability[d.v])) + '</div>';
+  }).join('');
+  var att = before ? [files.photo ? 'תמונה' : '', files.video ? 'סרטון' : ''] : [session && session.photoId ? 'תמונה' : '', session && session.videoId ? 'סרטון' : ''];
+  return '<div><b>שם מלא:</b> ' + esc(data.name) + '</div>' +
+    '<div><b>גיל:</b> ' + esc(data.age) + '</div>' +
+    '<div><b>טלפון:</b> <span dir="ltr">' + esc(data.contactPhone) + '</span></div>' +
+    whenRows +
+    '<div><b>צירופים:</b> ' + (att.filter(Boolean).join(' + ') || 'ללא') + '</div>';
+}
 
 function showDone(data, finPromise) {
-  var day = DAYS.filter(function (d) { return d.v === data.day; })[0];
-  $('summary').innerHTML =
-    '<div><b>משתתף/ת:</b> ' + esc(data.name) + ', גיל ' + esc(data.age) + '</div>' +
-    '<div><b>טלפון:</b> <span dir="ltr">' + esc(data.contactPhone) + '</span></div>' +
-    '<div><b>מתי:</b> ' + (day ? day.label + ' ' + day.d : esc(data.day)) + ', ' + (data.hour === 'גמיש' ? 'שעה גמישה' : 'בשעה ' + esc(data.hour)) + '</div>' +
-    '<div><b>צירופים:</b> ' + ([session.photoId ? 'תמונה' : '', session.videoId ? 'סרטון' : ''].filter(Boolean).join(' + ') || 'ללא') + '</div>';
+  $('summary').innerHTML = summaryHtml(data, false);
   $('f').style.display = 'none'; $('done').style.display = 'block'; window.scrollTo(0, 0);
   // ניקוי הטיוטה – שומרים רק טלפון ו"מי הפנה" להרשמה הבאה
-  lsSet({ referrer: data.referrer, contactPhone: data.contactPhone, subId: uuid() });
+  lsSet({ referrer: data.referrer, prefix: $('prefix').value, phonenum: $('phonenum').value, availability: data.availability, subId: uuid() });
   busy = true;
   finPromise.then(function () { $('savestate').textContent = '✓ נשמר'; $('savestate').className = 'savestate ok'; },
                   function () { $('savestate').textContent = '✓ ההרשמה התקבלה'; $('savestate').className = 'savestate ok'; })
