@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>הרשמה לצילומים – הסולטיז</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://www.google.com/recaptcha/api.js?hl=iw" async defer></script>
+<style>
+  :root { --brand:#5B3DF5; --brand2:#FF4D8D; --ink:#1A1530; --muted:#6B6585; --line:#E4E0F2; --bg:#F6F4FD; --err:#D7263D; --ok:#12A16B; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Heebo',system-ui,sans-serif; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:640px; margin:0 auto; padding:16px 14px 60px; }
+  .hero { background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff; border-radius:22px; padding:26px 22px; box-shadow:0 10px 30px rgba(91,61,245,.25); }
+  .hero .tag { display:inline-block; background:rgba(255,255,255,.2); border-radius:99px; padding:4px 12px; font-size:13px; font-weight:700; letter-spacing:.3px; }
+  .hero h1 { font-size:26px; line-height:1.25; margin:12px 0 10px; font-weight:800; }
+  .hero p { margin:0; font-size:15.5px; line-height:1.6; opacity:.95; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; margin-top:14px; }
+  label.q { display:block; font-weight:700; font-size:16px; margin-bottom:10px; }
+  .req { color:var(--err); margin-inline-start:3px; }
+  .hint { color:var(--muted); font-size:13.5px; margin:-4px 0 10px; }
+  input[type=text], input[type=tel], select { width:100%; font:inherit; font-size:16px; padding:13px 14px; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); outline:none; transition:border .15s; }
+  input:focus, select:focus { border-color:var(--brand); }
+  .chips { display:flex; gap:10px; flex-wrap:wrap; }
+  .chip { position:relative; }
+  .chip input { position:absolute; opacity:0; inset:0; }
+  .chip span { display:block; padding:12px 22px; border:1.5px solid var(--line); border-radius:12px; font-weight:700; font-size:16px; cursor:pointer; user-select:none; }
+  .chip input:checked + span { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .media-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .mbtn { display:flex; align-items:center; justify-content:center; gap:8px; padding:14px 10px; border-radius:12px; border:1.5px dashed var(--brand); color:var(--brand); font-weight:700; font-size:15px; cursor:pointer; background:#FAF9FF; text-align:center; }
+  .mbtn input { display:none; }
+  .preview { display:none; margin-top:12px; position:relative; border-radius:14px; overflow:hidden; background:#000; }
+  .preview img, .preview video { display:block; width:100%; max-height:360px; object-fit:contain; background:#000; }
+  .preview .rm { position:absolute; top:8px; left:8px; background:rgba(0,0,0,.6); color:#fff; border:0; border-radius:99px; padding:6px 12px; font:inherit; font-size:13px; cursor:pointer; }
+  .preview .meta { position:absolute; bottom:0; right:0; left:0; color:#fff; font-size:12.5px; padding:6px 10px; background:linear-gradient(transparent,rgba(0,0,0,.6)); }
+  .err { color:var(--err); font-size:14px; margin-top:8px; display:none; font-weight:500; }
+  .card.bad { border-color:var(--err); }
+  .card.bad .err { display:block; }
+  .submit { width:100%; margin-top:18px; padding:16px; font:inherit; font-size:18px; font-weight:800; color:#fff; border:0; border-radius:14px; background:linear-gradient(135deg,var(--brand),var(--brand2)); cursor:pointer; box-shadow:0 8px 20px rgba(91,61,245,.3); }
+  .submit:disabled { opacity:.6; cursor:default; }
+  .captcha { display:flex; justify-content:center; margin-top:14px; min-height:78px; }
+  .hp { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; clip-path:inset(50%); }
+  html, body { overflow-x:hidden; }
+  .overlay { position:fixed; inset:0; background:rgba(26,21,48,.6); display:none; align-items:center; justify-content:center; z-index:10; padding:20px; }
+  .box { background:#fff; border-radius:20px; padding:26px 22px; width:100%; max-width:420px; text-align:center; }
+  .box h2 { margin:0 0 6px; font-size:21px; }
+  .bar { height:12px; background:var(--line); border-radius:99px; overflow:hidden; margin:18px 0 8px; }
+  .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--brand),var(--brand2)); transition:width .3s; }
+  .muted { color:var(--muted); font-size:14px; }
+  .done { display:none; text-align:center; }
+  .done .big { font-size:56px; }
+  .done h2 { font-size:24px; margin:6px 0; }
+  .again { margin-top:16px; padding:14px 22px; font:inherit; font-weight:700; font-size:16px; border-radius:12px; border:1.5px solid var(--brand); background:#fff; color:var(--brand); cursor:pointer; }
+  .foot { text-align:center; color:var(--muted); font-size:12.5px; margin-top:22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <span class="tag">הסולטיז · הרשמה לצילומים</span>
+    <h1>גילאים 1 עד 100 מנסים את הטרנדים הכי ויראליים – הרשמה לצילומים</h1>
+    <p>הסולטיז מצלמים וולוג חדש ב־13.12 וב־14.12 ומחפשים 100 משתתפים מגיל שנה ועד גיל 100. כל משתתף יגיע לאולפן לחצי שעה, עד שעה לכל היותר, יתנסה בטרנדים ויגיב אליהם, ותחכה לו פינת קפה מפנקת. על כל משתתף ממלאים טופס נפרד, ואפשר למלא כמה פעמים.</p>
+  </div>
+
+  <form id="f" novalidate>
+    <div class="card" data-f="referrer">
+      <label class="q" for="referrer">מי הפנה אותך?</label>
+      <input type="text" id="referrer" maxlength="150" autocomplete="off">
+    </div>
+
+    <div class="card" data-f="name">
+      <label class="q" for="name">שם מלא של המשתתף<span class="req">*</span></label>
+      <input type="text" id="name" maxlength="100" autocomplete="name">
+      <div class="err">יש למלא שם מלא</div>
+    </div>
+
+    <div class="card" data-f="age">
+      <label class="q" for="age">גיל המשתתף<span class="req">*</span></label>
+      <select id="age"><option value="">בחירה</option></select>
+      <div class="err">יש לבחור גיל</div>
+    </div>
+
+    <div class="card" data-f="phone">
+      <label class="q" for="phone">טלפון ליצירת קשר (לילדים: טלפון של ההורה)<span class="req">*</span></label>
+      <input type="tel" id="phone" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="050-0000000">
+      <div class="err">יש למלא מספר טלפון תקין</div>
+    </div>
+
+    <div class="card" data-f="days">
+      <label class="q">באיזה יום אפשר להגיע?<span class="req">*</span></label>
+      <div class="chips" id="days"></div>
+      <div class="err">יש לבחור לפחות יום אחד</div>
+    </div>
+
+    <div class="card" data-f="hour">
+      <label class="q" for="hour">באיזו שעה נוח להגיע?<span class="req">*</span></label>
+      <select id="hour"><option value="">בחירה</option></select>
+      <div class="err">יש לבחור שעה</div>
+    </div>
+
+    <div class="card" data-f="photo">
+      <label class="q">תמונה של המשתתף (לא חובה)</label>
+      <div class="hint">אפשר לצלם עכשיו או להעלות תמונה מהגלריה</div>
+      <div class="media-btns">
+        <label class="mbtn">📸 צילום תמונה<input type="file" accept="image/*" capture="environment" data-kind="photo"></label>
+        <label class="mbtn">🖼️ העלאה מהגלריה<input type="file" accept="image/*" data-kind="photo"></label>
+      </div>
+      <div class="preview" id="pv-photo"></div>
+      <div class="err">התמונה לא תקינה</div>
+    </div>
+
+    <div class="card" data-f="video">
+      <label class="q">סרטון (לא חובה)</label>
+      <div class="hint">אפשר לצלם סרטון עכשיו או להעלות מהגלריה</div>
+      <div class="media-btns">
+        <label class="mbtn">🎥 צילום סרטון<input type="file" accept="video/*" capture="environment" data-kind="video"></label>
+        <label class="mbtn">🎞️ העלאה מהגלריה<input type="file" accept="video/*" data-kind="video"></label>
+      </div>
+      <div class="preview" id="pv-video"></div>
+      <div class="err" id="video-err">הסרטון גדול מדי</div>
+    </div>
+
+    <div class="hp" aria-hidden="true"><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+
+    <div class="captcha"><div class="g-recaptcha" data-sitekey="6LcVIDIuAAAAAGpNrOVbmuhn8auOpK0CUh6xa5pZ" data-callback="onCaptcha"></div></div>
+    <button type="submit" class="submit" id="go">שליחת ההרשמה</button>
+    <div class="err" id="form-err" style="text-align:center"></div>
+  </form>
+
+  <div class="done card" id="done">
+    <div class="big">🎉</div>
+    <h2>ההרשמה התקבלה!</h2>
+    <p class="muted" id="done-txt">תודה! ניצור קשר לתיאום.</p>
+    <button class="again" onclick="location.reload()">הרשמה של משתתף נוסף</button>
+  </div>
+
+  <div class="foot">הסולטיז · הפרטים משמשים לתיאום הצילומים בלבד</div>
+</div>
+
+<div class="overlay" id="ov">
+  <div class="box">
+    <h2 id="ov-title">שולחים…</h2>
+    <div class="muted" id="ov-sub">לא לסגור את הדף</div>
+    <div class="bar"><i id="ov-bar"></i></div>
+    <div class="muted" id="ov-pct">0%</div>
+  </div>
+</div>
+
+<script>
+var API_URL = 'https://script.google.com/macros/s/AKfycbwDZcKJQpX-j3Tupl0E_sKlp1iu8PweKkx1-GOjdZ6pidbLdgtBySCoDtMZDXz9LSf7WQ/exec';
+var CFG = {
+  days: ['13.12', '14.12'],
+  hours: ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00',
+          '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', 'גמיש'],
+  maxPhotoBytes: 30 * 1024 * 1024, maxVideoBytes: 600 * 1024 * 1024
+};
+var CHUNK = 4 * 1024 * 1024; // 4MB (כפולה של 256KB)
+var files = { photo: null, video: null };
+var captchaToken = '';
+var busy = false;
+var session = null;   // { token, subId, photoId, videoId }
+var LS = 'saltiz_signup_draft_v1';
+
+function $(id) { return document.getElementById(id); }
+function onCaptcha(t) { captchaToken = t; }
+window.onCaptcha = onCaptcha;
+
+function uuid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+}
+function lsGet() { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { return null; } }
+function lsSet(v) { try { localStorage.setItem(LS, JSON.stringify(v)); } catch (e) {} }
+function lsClear() { try { localStorage.removeItem(LS); } catch (e) {} }
+
+function formData() {
+  return {
+    referrer: $('referrer').value, name: $('name').value.trim(), age: $('age').value, contactPhone: $('phone').value,
+    days: Array.prototype.map.call(document.querySelectorAll('#days input:checked'), function (i) { return i.value; }),
+    hour: $('hour').value, wantsVideo: !!files.video, wantsPhoto: !!files.photo
+  };
+}
+var draft = lsGet() || {};
+if (!draft.subId) draft.subId = uuid();
+function saveDraft() { var d = formData(); d.subId = draft.subId; lsSet(d); }
+
+(function init() {
+  var age = $('age');
+  for (var i = 1; i <= 100; i++) { var o = document.createElement('option'); o.value = i; o.textContent = i; age.appendChild(o); }
+  var hour = $('hour');
+  CFG.hours.forEach(function (h) { var o = document.createElement('option'); o.value = h; o.textContent = h; hour.appendChild(o); });
+  var days = $('days');
+  CFG.days.forEach(function (d) {
+    var l = document.createElement('label'); l.className = 'chip';
+    l.innerHTML = '<input type="checkbox" value="' + d + '"><span>' + d + '</span>';
+    days.appendChild(l);
+  });
+  // שחזור טיוטה (אם הדף רוענן)
+  if (draft.name || draft.contactPhone) {
+    $('referrer').value = draft.referrer || ''; $('name').value = draft.name || ''; $('age').value = draft.age || '';
+    $('phone').value = draft.contactPhone || ''; $('hour').value = draft.hour || '';
+    (draft.days || []).forEach(function (d) { var c = document.querySelector('#days input[value="' + d + '"]'); if (c) c.checked = true; });
+  }
+  saveDraft();
+  document.querySelectorAll('input[type=file]').forEach(function (inp) {
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0]; inp.value = '';
+      if (f) pickFile(inp.getAttribute('data-kind'), f);
+    });
+  });
+  document.querySelectorAll('#f input, #f select').forEach(function (el) {
+    var h = function () { var c = el.closest('.card'); if (c) c.classList.remove('bad'); saveDraft(); };
+    el.addEventListener('input', h); el.addEventListener('change', h);
+  });
+  window.addEventListener('beforeunload', function (e) { if (busy) { e.preventDefault(); e.returnValue = ''; return ''; } });
+})();
+
+function fmtMB(b) { return (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + 'MB'; }
+
+function pickFile(kind, f) {
+  var card = document.querySelector('[data-f="' + kind + '"]');
+  card.classList.remove('bad');
+  if (kind === 'photo' && !/^image\//.test(f.type)) { alertCard(card, 'יש לבחור קובץ תמונה'); return; }
+  if (kind === 'video' && !/^video\//.test(f.type)) { alertCard(card, 'יש לבחור קובץ וידאו'); return; }
+  if (kind === 'video' && f.size > CFG.maxVideoBytes) { alertCard(card, 'הסרטון גדול מדי (עד ' + fmtMB(CFG.maxVideoBytes) + '). נסו סרטון קצר יותר.'); return; }
+  var done = function (file) {
+    files[kind] = file;
+    if (session) session[kind + 'Id'] = '';   // קובץ חדש – יעלה מחדש
+    var pv = $('pv-' + kind);
+    var url = URL.createObjectURL(file);
+    pv.innerHTML = (kind === 'photo' ? '<img src="' + url + '">' : '<video src="' + url + '" controls playsinline></video>') +
+      '<button type="button" class="rm">הסרה ✕</button><div class="meta">' + fmtMB(file.size) + '</div>';
+    pv.style.display = 'block';
+    pv.querySelector('.rm').onclick = function () { files[kind] = null; pv.style.display = 'none'; pv.innerHTML = ''; };
+  };
+  if (kind === 'photo') compressImage(f).then(done, function () { done(f); });
+  else done(f);
+}
+
+function alertCard(card, msg) { var e = card.querySelector('.err'); e.textContent = msg; card.classList.add('bad'); }
+
+function compressImage(file) {
+  return new Promise(function (resolve, reject) {
+    if (file.size < 400 * 1024) return resolve(file);
+    var img = new Image();
+    img.onload = function () {
+      var max = 1600, w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, max / Math.max(w, h));
+      var c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(function (b) {
+        if (!b) return reject();
+        resolve(new File([b], (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.85);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// קריאה לשרת (Google Apps Script) בלי עוגיות – כך התחברות לחשבונות גוגל לא מפריעה
+function run(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return fetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }), credentials: 'omit', redirect: 'follow' })
+    .then(function (r) { if (!r.ok) throw new Error('שגיאת תקשורת (' + r.status + ')'); return r.json(); })
+    .then(function (j) { if (!j.ok) throw new Error(j.error); return j.result; });
+}
+function sleep(ms) { return new Promise(function (s) { setTimeout(s, ms); }); }
+async function runRetry(tries, fn) {
+  var args = Array.prototype.slice.call(arguments, 2);
+  for (var i = 1; ; i++) {
+    try { return await run.apply(null, [fn].concat(args)); }
+    catch (e) {
+      var m = errMsg(e);
+      if (i >= tries || /יש ל|לא תקין|גדול מדי|רובוט|פג תוקף/.test(m)) throw e;
+      await sleep(1500 * i);
+    }
+  }
+}
+function errMsg(e) { return (e && e.message ? e.message : String(e)).replace(/^Error:\s*/, '').replace(/^Exception:\s*/, ''); }
+
+function readChunkB64(blob) {
+  return new Promise(function (resolve, reject) {
+    var fr = new FileReader();
+    fr.onload = function () { var s = fr.result; resolve(s.substring(s.indexOf(',') + 1)); };
+    fr.onerror = reject;
+    fr.readAsDataURL(blob);
+  });
+}
+
+// העלאה ישירה מהדפדפן לגוגל דרייב (מהיר, עם התקדמות אמיתית)
+function putDirect(url, file, onProgress) {
+  return new Promise(function (resolve, reject) {
+    var x = new XMLHttpRequest();
+    x.open('PUT', url);
+    x.upload.onprogress = function (e) { if (e.lengthComputable) onProgress(e.loaded); };
+    x.onload = function () {
+      if (x.status === 200 || x.status === 201) {
+        try { resolve(JSON.parse(x.responseText).id); } catch (e) { reject(new Error('תגובה לא תקינה')); }
+      } else reject(new Error('שגיאה בהעלאה (' + x.status + ')'));
+    };
+    x.onerror = function () { reject(new Error('בעיית חיבור בזמן ההעלאה')); };
+    x.ontimeout = x.onerror;
+    x.send(new Blob([file]));
+  });
+}
+
+// מסלול גיבוי: העלאה בחלקים דרך השרת
+async function uploadViaServer(token, kind, file, onProgress) {
+  var st = await runRetry(3, 'startUpload', token, kind, file.name || kind, file.type, file.size);
+  var off = 0;
+  while (off < file.size) {
+    var end = Math.min(off + CHUNK, file.size);
+    var b64 = await readChunkB64(file.slice(off, end));
+    var r = await runRetry(4, 'uploadChunk', token, st.uploadId, off, b64);
+    off = end;
+    onProgress(off);
+    if (r.done) return r.fileId;
+  }
+  throw new Error('ההעלאה לא הושלמה');
+}
+
+async function uploadFile(token, kind, file, onProgress) {
+  for (var attempt = 1; attempt <= 2; attempt++) {
+    try {
+      var url = session.uploads && session.uploads[kind];
+      session.uploads[kind] = '';                    // קישור חד-פעמי
+      if (!url) url = (await runRetry(3, 'newSession', token, kind, file.name || kind, file.type, file.size, location.origin)).url;
+      return await putDirect(url, file, onProgress);
+    } catch (e) {
+      if (/גדול מדי|לא תקין/.test(errMsg(e))) throw e;
+      onProgress(0);
+    }
+  }
+  return uploadViaServer(token, kind, file, onProgress);   // אם ההעלאה הישירה לא מצליחה
+}
+
+function validate() {
+  var ok = true, first = null;
+  function bad(f, msg) { var c = document.querySelector('[data-f="' + f + '"]'); if (msg) c.querySelector('.err').textContent = msg; c.classList.add('bad'); ok = false; if (!first) first = c; }
+  if (!$('name').value.trim()) bad('name');
+  if (!$('age').value) bad('age');
+  if ($('phone').value.replace(/\D/g, '').length < 9) bad('phone');
+  if (!document.querySelectorAll('#days input:checked').length) bad('days');
+  if (!$('hour').value) bad('hour');
+  if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return ok;
+}
+
+function setProgress(pct, title, sub) {
+  $('ov-bar').style.width = pct + '%'; $('ov-pct').textContent = Math.round(pct) + '%';
+  if (title) $('ov-title').textContent = title; if (sub) $('ov-sub').textContent = sub;
+}
+function showErr(msg) { $('form-err').innerHTML = msg; $('form-err').style.display = 'block'; $('form-err').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+$('f').addEventListener('submit', async function (ev) {
+  ev.preventDefault();
+  if (busy) return;
+  $('form-err').style.display = 'none';
+  if ($('website').value) return;              // מלכודת לבוטים
+  if (!validate()) return;
+  if (!session && !captchaToken) { showErr('יש לסמן "אני לא רובוט"'); return; }
+  busy = true; $('go').disabled = true;
+  $('ov').style.display = 'flex';
+  setProgress(0, 'שומרים את הפרטים…', 'לא לסגור את הדף');
+  var stage = 'save';
+  try {
+    // שלב 1: הפרטים נשמרים בשרת לפני כל העלאה
+    if (!session) {
+      var meta = ['photo', 'video'].filter(function (k) { return files[k]; })
+        .map(function (k) { return { kind: k, name: files[k].name || k, type: files[k].type, size: files[k].size }; });
+      var s = await runRetry(3, 'beginSubmission', captchaToken, draft.subId, formData(), meta, location.origin);
+      session = { token: s.token, subId: draft.subId, photoId: '', videoId: '', uploads: s.uploads || {} };
+    }
+    var name = $('name').value.trim();
+    var needPhoto = files.photo && !session.photoId, needVideo = files.video && !session.videoId;
+    var total = (needPhoto ? files.photo.size : 0) + (needVideo ? files.video.size : 0) || 1, sent = 0;
+
+    // שלב 2: תמונה (רשות)
+    stage = 'photo';
+    if (needPhoto) {
+      setProgress(3, 'מעלים את התמונה…');
+      session.photoId = await uploadFile(session.token, 'photo', files.photo, function (n) { setProgress(3 + 92 * (n / total)); });
+      sent = files.photo.size;
+    }
+    // שלב 3: סרטון (רשות) – כשל לא מבטל את ההרשמה
+    var videoFailed = false;
+    if (needVideo) {
+      stage = 'video';
+      setProgress(3 + 92 * (sent / total), 'מעלים את הסרטון…', 'זה יכול לקחת כמה דקות – לא לסגור את הדף');
+      try {
+        session.videoId = await uploadFile(session.token, 'video', files.video, function (n) { setProgress(3 + 92 * ((sent + n) / total)); });
+      } catch (e) { videoFailed = true; }
+    }
+    // שלב 4: סיום
+    stage = 'final';
+    setProgress(97, 'מסיימים…');
+    var r = await runRetry(4, 'finalize', session.token, session.photoId, session.videoId, videoFailed);
+    setProgress(100);
+    busy = false;
+    $('ov').style.display = 'none';
+    if (videoFailed) {
+      $('go').disabled = false;
+      $('go').textContent = 'לנסות שוב להעלות את הסרטון';
+      showErr('✅ ההרשמה של ' + name + ' נשמרה, אבל <b>הסרטון לא עלה</b> (כנראה בגלל החיבור). אפשר ללחוץ שוב לנסות, או לוותר עליו – ההרשמה כבר אצלנו.' +
+              '<br><button type="button" class="again" onclick="finish()">סיום בלי סרטון</button>');
+      return;
+    }
+    finish();
+  } catch (e) {
+    busy = false;
+    $('ov').style.display = 'none';
+    $('go').disabled = false;
+    var m = errMsg(e) || 'משהו השתבש.';
+    if (session && stage !== 'save') {
+      $('go').textContent = 'לנסות שוב';
+      showErr('✅ הפרטים נשמרו אצלנו. ' + (stage === 'photo' ? '<b>התמונה לא עלתה</b>' : 'משהו השתבש בסיום') + ' – בדקו את החיבור ולחצו "לנסות שוב". (' + m + ')');
+    } else {
+      showErr(m + ' – הפרטים שמילאתם לא נמחקו, אפשר לנסות שוב.');
+      try { grecaptcha.reset(); } catch (x) {}
+      captchaToken = '';
+    }
+  }
+});
+
+function finish() {
+  lsClear();
+  $('f').style.display = 'none';
+  $('done-txt').textContent = 'תודה! ההרשמה של ' + $('name').value.trim() + ' נקלטה. ניצור קשר לתיאום.';
+  $('done').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
