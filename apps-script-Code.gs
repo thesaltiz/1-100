@@ -18,7 +18,7 @@ var CONFIG = {
           '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00',
           '19:30', '20:00', '20:30', 'גמיש'],
   maxPhotoBytes: 30 * 1024 * 1024,
-  maxVideoBytes: 600 * 1024 * 1024,
+  maxVideoBytes: 300 * 1024 * 1024,
   sessionTtlSec: 6 * 60 * 60,
   maxSubmissionsPerHour: 120,
   stuckAfterMin: 60
@@ -45,7 +45,7 @@ function now_(fmt) { return Utilities.formatDate(new Date(), 'Asia/Jerusalem', f
 // הדף עצמו מתארח מחוץ לגוגל (GitHub Pages) כדי שהתחברות לחשבונות גוגל לא תפריע למשתתפים.
 // כאן רק API: הדף שולח POST עם {fn, args} ומקבל JSON.
 var PUBLIC_PAGE_URL = 'https://thesaltiz.github.io/1-100/';
-var API = { beginSubmission: beginSubmission, newSession: newSession, startUpload: startUpload, uploadChunk: uploadChunk, finalize: finalize };
+var API = { ping: function () { return 'pong'; }, beginSubmission: beginSubmission, newSession: newSession, startUpload: startUpload, uploadChunk: uploadChunk, finalize: finalize };
 var ALLOWED_ORIGINS = ['https://thesaltiz.github.io', 'https://nave-napa.github.io'];
 
 function doPost(e) {
@@ -182,17 +182,26 @@ function safeText_(v, max) {
   return s;
 }
 
+// טלפון ישראלי: נייד 05X-XXXXXXX, קווי 0X-XXXXXXX, 07X-XXXXXXX; מקבל גם +972
+function normalizePhone_(raw) {
+  var d = String(raw || '').replace(/\D/g, '');
+  if (d.indexOf('972') === 0) d = '0' + d.substring(3);
+  if (/^05\d{8}$/.test(d) || /^07\d{8}$/.test(d)) return d.substring(0, 3) + '-' + d.substring(3);
+  if (/^0[2-489]\d{7}$/.test(d)) return d.substring(0, 2) + '-' + d.substring(2);
+  throw new Error('מספר הטלפון לא תקין. יש להזין מספר ישראלי, למשל 050-1234567');
+}
+
 function validate_(data) {
   var rec = {};
-  rec.referrer = safeText_(data.referrer, 150);
-  rec.name = safeText_(data.name, 100);
-  if (!rec.name) throw new Error('יש למלא שם מלא של המשתתף');
+  rec.referrer = safeText_(String(data.referrer || '').replace(/\s+/g, ' '), 60);
+  rec.name = safeText_(String(data.name || '').replace(/\s+/g, ' '), 60);
+  if (rec.name.replace(/[^A-Za-z֐-׿؀-ۿЀ-ӿ]/g, '').length < 2) throw new Error('יש למלא שם מלא של המשתתף');
   rec.age = Number(data.age);
   if (!(rec.age >= 1 && rec.age <= 100 && Math.floor(rec.age) === rec.age)) throw new Error('יש לבחור גיל');
-  rec.contactPhone = String(data.contactPhone || '').replace(/[^\d+]/g, '').substring(0, 20);
-  if (rec.contactPhone.replace(/\D/g, '').length < 9) throw new Error('יש למלא טלפון ליצירת קשר');
-  rec.days = (data.days || []).filter(function (d) { return CONFIG.days.indexOf(d) !== -1; });
-  if (!rec.days.length) throw new Error('יש לבחור לפחות יום אחד');
+  rec.contactPhone = normalizePhone_(data.contactPhone);
+  var day = data.day || (data.days && data.days.length === 1 ? data.days[0] : '');
+  if (CONFIG.days.indexOf(day) === -1) throw new Error('יש לבחור יום אחד');
+  rec.days = [day];
   if (CONFIG.hours.indexOf(data.hour) === -1) throw new Error('יש לבחור שעה');
   rec.hour = data.hour;
   return rec;
@@ -216,7 +225,7 @@ function beginSubmission(captchaToken, subId, data, files, origin) {
   r.uploads = {};
   if (files && ALLOWED_ORIGINS.indexOf(origin) !== -1) {
     files.forEach(function (f) {
-      try { r.uploads[f.kind] = createSession_(subId, f.kind, f.name, f.type, f.size, origin).url; }
+      try { r.uploads[f.kind] = createSession_(subId, f.kind, f.name, f.type, f.size, origin, r.name).url; }
       catch (e) { console.error('session', e); }
     });
   }
@@ -227,7 +236,7 @@ function beginSubmission_(captchaToken, subId, data) {
   if (!/^[0-9a-f-]{20,40}$/i.test(String(subId))) throw new Error('מזהה לא תקין. רעננו את הדף.');
   // ניסיון חוזר של אותה הגשה (למשל נפל אינטרנט) – מחזירים את אותו טוקן בלי כפילות
   var existingTok = cache_().get('sub_' + subId);
-  if (existingTok && cache_().get('tok_' + existingTok)) return { token: existingTok, resumed: true };
+  if (existingTok && cache_().get('tok_' + existingTok)) return { token: existingTok, resumed: true, name: safeText_(String((data || {}).name || ''), 60) };
 
   var rec = validate_(data || {});
   verifyCaptcha_(captchaToken);
@@ -256,7 +265,7 @@ function beginSubmission_(captchaToken, subId, data) {
   try { upsertRow_(rec); saved = true; } catch (e) { errs.push('sheet: ' + e); }
   if (errs.length) alertOwner_('תקלה בשמירת הרשמה', 'שגיאות: ' + errs.join(' | ') + '\n\nפרטי ההרשמה:\n' + JSON.stringify(rec, null, 2));
   if (!saved) throw new Error('לא הצלחנו לשמור כרגע. נסו שוב בעוד רגע – הפרטים שמילאתם לא נמחקו.');
-  return { token: token };
+  return { token: token, name: rec.name };
 }
 
 // סטטוס לפי מה שהמשתתף ביקש להעלות ומה שבפועל עלה
@@ -276,7 +285,7 @@ function subForToken_(token) {
 }
 
 // ---------- העלאת קבצים (resumable ל-Drive, בחלקים) ----------
-function createSession_(subId, kind, fileName, mimeType, size, origin) {
+function createSession_(subId, kind, fileName, mimeType, size, origin, personName) {
   if (kind !== 'photo' && kind !== 'video') throw new Error('סוג קובץ לא תקין');
   size = Number(size);
   if (!(size > 0)) throw new Error('הקובץ ריק');
@@ -285,9 +294,9 @@ function createSession_(subId, kind, fileName, mimeType, size, origin) {
   var max = kind === 'photo' ? CONFIG.maxPhotoBytes : CONFIG.maxVideoBytes;
   if (size > max) throw new Error(kind === 'photo' ? 'התמונה גדולה מדי' : 'הסרטון גדול מדי (עד ' + Math.round(max / 1048576) + 'MB)');
 
-  var rec = readBackup_(subId) || {};
+  if (personName === undefined) personName = (readBackup_(subId) || {}).name;
   var ext = (String(fileName).match(/\.[A-Za-z0-9]{1,5}$/) || [''])[0];
-  var safeName = String(rec.name || '').replace(/^'/, '').replace(/[\\\/:*?"<>|]/g, '').substring(0, 60).trim() || 'משתתף';
+  var safeName = String(personName || '').replace(/^'/, '').replace(/[\\\/:*?"<>|]/g, '').substring(0, 60).trim() || 'משתתף';
   // המזהה בשם ובתיאור הקובץ מאפשר לשייך קובץ להרשמה גם אם הדף נסגר
   var name = now_('yyyy-MM-dd_HH-mm') + '_' + safeName + '_' + (kind === 'photo' ? 'תמונה' : 'סרטון') + '_' + subId.substring(0, 8) + ext;
   var headers = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), 'X-Upload-Content-Type': mimeType, 'X-Upload-Content-Length': String(size) };
@@ -351,10 +360,15 @@ function checkUploadedFile_(fileId, subId, kind) {
 }
 
 // ---------- סיום: עדכון השורה עם הקבצים ----------
-function finalize(token, photoId, videoId, videoFailed) {
+function finalize(token, photoId, videoId, videoFailed, data) {
   var subId = subForToken_(token);
   var rec = readBackup_(subId);
   if (!rec) throw new Error('ההרשמה לא נמצאה. פנו להפקה.');
+  if (data) {   // הפרטים העדכניים מהטופס (אם שונו אחרי השמירה הראשונה)
+    var upd = validate_(data);
+    ['referrer', 'name', 'age', 'contactPhone', 'days', 'hour'].forEach(function (k) { rec[k] = upd[k]; });
+    rec.wantsPhoto = !!data.wantsPhoto; rec.wantsVideo = !!data.wantsVideo;
+  }
   var p = checkUploadedFile_(photoId, subId, 'photo');
   var v = checkUploadedFile_(videoId, subId, 'video');
   if (p) rec.photoId = p;

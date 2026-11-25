@@ -4,55 +4,81 @@
 <meta charset="utf-8">
 <title>הרשמה לצילומים – הסולטיז</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#5B3DF5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://script.google.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
 <script src="https://www.google.com/recaptcha/api.js?hl=iw" async defer></script>
 <style>
-  :root { --brand:#5B3DF5; --brand2:#FF4D8D; --ink:#1A1530; --muted:#6B6585; --line:#E4E0F2; --bg:#F6F4FD; --err:#D7263D; --ok:#12A16B; }
+  :root { --brand:#5B3DF5; --brand2:#FF4D8D; --ink:#1A1530; --muted:#6B6585; --line:#E4E0F2; --bg:#F6F4FD; --err:#D7263D; --ok:#12A16B; --soft:#F1EEFF; }
   * { box-sizing:border-box; }
+  html, body { overflow-x:hidden; }
   body { margin:0; font-family:'Heebo',system-ui,sans-serif; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
   .wrap { max-width:640px; margin:0 auto; padding:16px 14px 60px; }
   .hero { background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff; border-radius:22px; padding:26px 22px; box-shadow:0 10px 30px rgba(91,61,245,.25); }
-  .hero .tag { display:inline-block; background:rgba(255,255,255,.2); border-radius:99px; padding:4px 12px; font-size:13px; font-weight:700; letter-spacing:.3px; }
+  .hero .tag { display:inline-block; background:rgba(255,255,255,.2); border-radius:99px; padding:4px 12px; font-size:13px; font-weight:700; }
   .hero h1 { font-size:26px; line-height:1.25; margin:12px 0 10px; font-weight:800; }
   .hero p { margin:0; font-size:15.5px; line-height:1.6; opacity:.95; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; margin-top:14px; }
-  label.q { display:block; font-weight:700; font-size:16px; margin-bottom:10px; }
+  .legend { color:var(--muted); font-size:13.5px; margin:14px 4px 0; }
   .req { color:var(--err); margin-inline-start:3px; }
+  .card { background:#fff; border:1.5px solid var(--line); border-radius:18px; padding:18px; margin-top:14px; transition:border-color .15s; }
+  label.q, .q { display:block; font-weight:700; font-size:16px; margin-bottom:10px; }
   .hint { color:var(--muted); font-size:13.5px; margin:-4px 0 10px; }
-  input[type=text], input[type=tel], select { width:100%; font:inherit; font-size:16px; padding:13px 14px; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); outline:none; transition:border .15s; }
-  input:focus, select:focus { border-color:var(--brand); }
-  .chips { display:flex; gap:10px; flex-wrap:wrap; }
-  .chip { position:relative; }
-  .chip input { position:absolute; opacity:0; inset:0; }
-  .chip span { display:block; padding:12px 22px; border:1.5px solid var(--line); border-radius:12px; font-weight:700; font-size:16px; cursor:pointer; user-select:none; }
+  input[type=text], input[type=tel], select { width:100%; font:inherit; font-size:16px; padding:13px 14px; border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); outline:none; transition:border .15s; -webkit-appearance:none; appearance:none; }
+  select { background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%); background-position:18px 50%,24px 50%; background-size:6px 6px; background-repeat:no-repeat; }
+  input[type=tel] { direction:ltr; text-align:right; letter-spacing:.5px; }
+  input:focus, select:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgba(91,61,245,.12); }
+  .chips { display:grid; gap:10px; }
+  .chips.days { grid-template-columns:1fr 1fr; }
+  .chips.hours { grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+  .chip { position:relative; display:block; }
+  .chip input { position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; }
+  .chip span { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:48px; padding:10px 6px; border:1.5px solid var(--line); border-radius:12px; font-weight:700; font-size:15.5px; cursor:pointer; user-select:none; text-align:center; background:#fff; transition:all .12s; }
+  .chip span small { font-weight:500; font-size:13px; color:var(--muted); }
   .chip input:checked + span { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .chip input:checked + span small { color:rgba(255,255,255,.85); }
+  .chip input:focus-visible + span { box-shadow:0 0 0 3px rgba(91,61,245,.3); }
+  .chips.hours .chip span { min-height:44px; font-size:15px; }
+  .chips.hours .chip.flex { grid-column:1 / -1; }
   .media-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .mbtn { display:flex; align-items:center; justify-content:center; gap:8px; padding:14px 10px; border-radius:12px; border:1.5px dashed var(--brand); color:var(--brand); font-weight:700; font-size:15px; cursor:pointer; background:#FAF9FF; text-align:center; }
+  .mbtn { display:flex; align-items:center; justify-content:center; gap:8px; min-height:50px; padding:12px 8px; border-radius:12px; border:1.5px dashed var(--brand); color:var(--brand); font-weight:700; font-size:15px; cursor:pointer; background:#FAF9FF; text-align:center; }
   .mbtn input { display:none; }
   .preview { display:none; margin-top:12px; position:relative; border-radius:14px; overflow:hidden; background:#000; }
-  .preview img, .preview video { display:block; width:100%; max-height:360px; object-fit:contain; background:#000; }
-  .preview .rm { position:absolute; top:8px; left:8px; background:rgba(0,0,0,.6); color:#fff; border:0; border-radius:99px; padding:6px 12px; font:inherit; font-size:13px; cursor:pointer; }
+  .preview img, .preview video { display:block; width:100%; max-height:340px; object-fit:contain; background:#000; }
+  .preview .rm { position:absolute; top:8px; left:8px; background:rgba(0,0,0,.65); color:#fff; border:0; border-radius:99px; padding:7px 13px; font:inherit; font-size:13.5px; cursor:pointer; }
   .preview .meta { position:absolute; bottom:0; right:0; left:0; color:#fff; font-size:12.5px; padding:6px 10px; background:linear-gradient(transparent,rgba(0,0,0,.6)); }
   .err { color:var(--err); font-size:14px; margin-top:8px; display:none; font-weight:500; }
   .card.bad { border-color:var(--err); }
   .card.bad .err { display:block; }
-  .submit { width:100%; margin-top:18px; padding:16px; font:inherit; font-size:18px; font-weight:800; color:#fff; border:0; border-radius:14px; background:linear-gradient(135deg,var(--brand),var(--brand2)); cursor:pointer; box-shadow:0 8px 20px rgba(91,61,245,.3); }
+  .card.bad input, .card.bad select { border-color:var(--err); }
+  .okmark { color:var(--ok); font-size:13.5px; margin-top:6px; display:none; }
+  .card.good .okmark { display:block; }
+  .submit { width:100%; margin-top:18px; min-height:56px; padding:16px; font:inherit; font-size:18px; font-weight:800; color:#fff; border:0; border-radius:14px; background:linear-gradient(135deg,var(--brand),var(--brand2)); cursor:pointer; box-shadow:0 8px 20px rgba(91,61,245,.3); }
   .submit:disabled { opacity:.6; cursor:default; }
-  .captcha { display:flex; justify-content:center; margin-top:14px; min-height:78px; }
+  .captcha { display:flex; justify-content:center; margin-top:16px; min-height:78px; }
   .hp { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; clip-path:inset(50%); }
-  html, body { overflow-x:hidden; }
+  .notice { margin-top:12px; padding:12px 14px; border-radius:12px; font-size:14.5px; line-height:1.5; display:none; }
+  .notice.err-box { display:block; background:#FDECEE; color:#8A1525; }
+  .notice.warn-box { display:block; background:#FFF6DA; color:#6B4E00; }
+  .notice button { margin-top:10px; }
   .overlay { position:fixed; inset:0; background:rgba(26,21,48,.6); display:none; align-items:center; justify-content:center; z-index:10; padding:20px; }
   .box { background:#fff; border-radius:20px; padding:26px 22px; width:100%; max-width:420px; text-align:center; }
   .box h2 { margin:0 0 6px; font-size:21px; }
   .bar { height:12px; background:var(--line); border-radius:99px; overflow:hidden; margin:18px 0 8px; }
-  .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--brand),var(--brand2)); transition:width .3s; }
+  .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--brand),var(--brand2)); transition:width .25s; }
   .muted { color:var(--muted); font-size:14px; }
   .done { display:none; text-align:center; }
-  .done .big { font-size:56px; }
-  .done h2 { font-size:24px; margin:6px 0; }
-  .again { margin-top:16px; padding:14px 22px; font:inherit; font-weight:700; font-size:16px; border-radius:12px; border:1.5px solid var(--brand); background:#fff; color:var(--brand); cursor:pointer; }
+  .done .big { font-size:56px; line-height:1; }
+  .done h2 { font-size:24px; margin:10px 0 6px; }
+  .summary { text-align:right; background:var(--soft); border-radius:14px; padding:14px 16px; margin:16px 0 4px; font-size:15px; line-height:1.9; }
+  .summary b { display:inline-block; min-width:92px; color:var(--muted); font-weight:500; }
+  .savestate { font-size:13.5px; color:var(--muted); margin-top:8px; }
+  .savestate.ok { color:var(--ok); }
+  .btn2 { width:100%; margin-top:12px; min-height:50px; padding:12px 18px; font:inherit; font-weight:700; font-size:16px; border-radius:12px; border:1.5px solid var(--brand); background:#fff; color:var(--brand); cursor:pointer; }
+  .btn2.solid { background:var(--brand); color:#fff; }
   .foot { text-align:center; color:var(--muted); font-size:12.5px; margin-top:22px; }
+  @media (max-width:380px) { .chips.hours { grid-template-columns:repeat(3,minmax(0,1fr)); } .hero h1 { font-size:23px; } }
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
 </style>
 </head>
 <body>
@@ -62,83 +88,89 @@
     <h1>גילאים 1 עד 100 מנסים את הטרנדים הכי ויראליים – הרשמה לצילומים</h1>
     <p>הסולטיז מצלמים וולוג חדש ב־13.12 וב־14.12 ומחפשים 100 משתתפים מגיל שנה ועד גיל 100. כל משתתף יגיע לאולפן לחצי שעה, עד שעה לכל היותר, יתנסה בטרנדים ויגיב אליהם, ותחכה לו פינת קפה מפנקת. על כל משתתף ממלאים טופס נפרד, ואפשר למלא כמה פעמים.</p>
   </div>
+  <div class="legend"><span class="req">*</span> שדה חובה</div>
 
-  <form id="f" novalidate>
+  <form id="f" novalidate autocomplete="on">
     <div class="card" data-f="referrer">
       <label class="q" for="referrer">מי הפנה אותך?</label>
-      <input type="text" id="referrer" maxlength="150" autocomplete="off">
+      <input type="text" id="referrer" maxlength="60" autocomplete="off" enterkeyhint="next">
     </div>
 
     <div class="card" data-f="name">
       <label class="q" for="name">שם מלא של המשתתף<span class="req">*</span></label>
-      <input type="text" id="name" maxlength="100" autocomplete="name">
-      <div class="err">יש למלא שם מלא</div>
+      <div class="hint">שם פרטי ושם משפחה</div>
+      <input type="text" id="name" maxlength="60" autocomplete="off" enterkeyhint="next" aria-describedby="name-err">
+      <div class="err" id="name-err"></div>
     </div>
 
     <div class="card" data-f="age">
       <label class="q" for="age">גיל המשתתף<span class="req">*</span></label>
-      <select id="age"><option value="">בחירה</option></select>
-      <div class="err">יש לבחור גיל</div>
+      <select id="age" aria-describedby="age-err"><option value="">בחירת גיל</option></select>
+      <div class="err" id="age-err">יש לבחור גיל</div>
     </div>
 
     <div class="card" data-f="phone">
-      <label class="q" for="phone">טלפון ליצירת קשר (לילדים: טלפון של ההורה)<span class="req">*</span></label>
-      <input type="tel" id="phone" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="050-0000000">
-      <div class="err">יש למלא מספר טלפון תקין</div>
+      <label class="q" for="phone" id="phone-label">טלפון ליצירת קשר (לילדים: טלפון של ההורה)<span class="req">*</span></label>
+      <input type="tel" id="phone" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="050-1234567" enterkeyhint="done" aria-describedby="phone-err">
+      <div class="err" id="phone-err"></div>
+      <div class="okmark">✓ מספר תקין</div>
     </div>
 
-    <div class="card" data-f="days">
-      <label class="q">באיזה יום אפשר להגיע?<span class="req">*</span></label>
-      <div class="chips" id="days"></div>
-      <div class="err">יש לבחור לפחות יום אחד</div>
+    <div class="card" data-f="day" role="radiogroup" aria-labelledby="day-q">
+      <div class="q" id="day-q">באיזה יום אפשר להגיע?<span class="req">*</span></div>
+      <div class="chips days" id="days"></div>
+      <div class="err">יש לבחור יום</div>
     </div>
 
-    <div class="card" data-f="hour">
-      <label class="q" for="hour">באיזו שעה נוח להגיע?<span class="req">*</span></label>
-      <select id="hour"><option value="">בחירה</option></select>
+    <div class="card" data-f="hour" role="radiogroup" aria-labelledby="hour-q">
+      <div class="q" id="hour-q">באיזו שעה נוח להגיע?<span class="req">*</span></div>
+      <div class="chips hours" id="hours"></div>
       <div class="err">יש לבחור שעה</div>
     </div>
 
     <div class="card" data-f="photo">
-      <label class="q">תמונה של המשתתף (לא חובה)</label>
-      <div class="hint">אפשר לצלם עכשיו או להעלות תמונה מהגלריה</div>
+      <div class="q">תמונה של המשתתף (לא חובה)</div>
+      <div class="hint">אפשר לצלם עכשיו או לבחור תמונה מהגלריה</div>
       <div class="media-btns">
         <label class="mbtn">📸 צילום תמונה<input type="file" accept="image/*" capture="environment" data-kind="photo"></label>
-        <label class="mbtn">🖼️ העלאה מהגלריה<input type="file" accept="image/*" data-kind="photo"></label>
+        <label class="mbtn">🖼️ מהגלריה<input type="file" accept="image/*" data-kind="photo"></label>
       </div>
       <div class="preview" id="pv-photo"></div>
-      <div class="err">התמונה לא תקינה</div>
+      <div class="err"></div>
     </div>
 
     <div class="card" data-f="video">
-      <label class="q">סרטון (לא חובה)</label>
-      <div class="hint">אפשר לצלם סרטון עכשיו או להעלות מהגלריה</div>
+      <div class="q">סרטון קצר (לא חובה)</div>
+      <div class="hint">עד דקה אחת. אפשר לצלם עכשיו או לבחור מהגלריה</div>
       <div class="media-btns">
         <label class="mbtn">🎥 צילום סרטון<input type="file" accept="video/*" capture="environment" data-kind="video"></label>
-        <label class="mbtn">🎞️ העלאה מהגלריה<input type="file" accept="video/*" data-kind="video"></label>
+        <label class="mbtn">🎞️ מהגלריה<input type="file" accept="video/*" data-kind="video"></label>
       </div>
       <div class="preview" id="pv-video"></div>
-      <div class="err" id="video-err">הסרטון גדול מדי</div>
+      <div class="err"></div>
     </div>
 
     <div class="hp" aria-hidden="true"><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
 
-    <div class="captcha"><div class="g-recaptcha" data-sitekey="6LcVIDIuAAAAAGpNrOVbmuhn8auOpK0CUh6xa5pZ" data-callback="onCaptcha"></div></div>
+    <div class="captcha"><div class="g-recaptcha" data-sitekey="6LcVIDIuAAAAAGpNrOVbmuhn8auOpK0CUh6xa5pZ" data-callback="onCaptcha" data-expired-callback="onCaptchaExpired"></div></div>
     <button type="submit" class="submit" id="go">שליחת ההרשמה</button>
-    <div class="err" id="form-err" style="text-align:center"></div>
+    <div class="notice" id="notice" role="alert"></div>
   </form>
 
   <div class="done card" id="done">
     <div class="big">🎉</div>
     <h2>ההרשמה התקבלה!</h2>
-    <p class="muted" id="done-txt">תודה! ניצור קשר לתיאום.</p>
-    <button class="again" onclick="location.reload()">הרשמה של משתתף נוסף</button>
+    <div class="muted">ניצור קשר לתיאום סופי לפני הצילומים.</div>
+    <div class="summary" id="summary"></div>
+    <div class="savestate" id="savestate">שומרים את הפרטים…</div>
+    <button class="btn2 solid" id="another" type="button">הרשמת משתתף נוסף</button>
+    <div class="muted" style="margin-top:8px;font-size:13px">הטלפון ו"מי הפנה" יישארו ממולאים</div>
   </div>
 
   <div class="foot">הסולטיז · הפרטים משמשים לתיאום הצילומים בלבד</div>
 </div>
 
-<div class="overlay" id="ov">
+<div class="overlay" id="ov" role="dialog" aria-live="polite">
   <div class="box">
     <h2 id="ov-title">שולחים…</h2>
     <div class="muted" id="ov-sub">לא לסגור את הדף</div>
@@ -148,287 +180,359 @@
 </div>
 
 <script>
+{
 var API_URL = 'https://script.google.com/macros/s/AKfycbwDZcKJQpX-j3Tupl0E_sKlp1iu8PweKkx1-GOjdZ6pidbLdgtBySCoDtMZDXz9LSf7WQ/exec';
-var CFG = {
-  days: ['13.12', '14.12'],
-  hours: ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00',
-          '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', 'גמיש'],
-  maxPhotoBytes: 30 * 1024 * 1024, maxVideoBytes: 600 * 1024 * 1024
-};
-var CHUNK = 4 * 1024 * 1024; // 4MB (כפולה של 256KB)
+var DAYS = [{ v: '13.12', label: 'יום ראשון', d: '13.12' }, { v: '14.12', label: 'יום שני', d: '14.12' }];
+var HOURS = ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00',
+             '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', 'גמיש'];
+var MAX_VIDEO_BYTES = 300 * 1024 * 1024, MAX_VIDEO_SEC = 65, CHUNK = 4 * 1024 * 1024;
+var LS = 'saltiz_signup_draft_v2';
+
 var files = { photo: null, video: null };
 var captchaToken = '';
 var busy = false;
-var session = null;   // { token, subId, photoId, videoId }
-var LS = 'saltiz_signup_draft_v1';
+var session = null;        // { token, subId, uploads, photoId, videoId, sentData }
+var prebegin = null;       // שמירה מוקדמת ברקע (אחרי "אני לא רובוט")
 
 function $(id) { return document.getElementById(id); }
-function onCaptcha(t) { captchaToken = t; }
-window.onCaptcha = onCaptcha;
+function card(f) { return document.querySelector('[data-f="' + f + '"]'); }
 
+// ---------- עזרים ----------
 function uuid() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
 }
 function lsGet() { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { return null; } }
 function lsSet(v) { try { localStorage.setItem(LS, JSON.stringify(v)); } catch (e) {} }
-function lsClear() { try { localStorage.removeItem(LS); } catch (e) {} }
+function fmtMB(b) { return (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + 'MB'; }
+function sleep(ms) { return new Promise(function (s) { setTimeout(s, ms); }); }
+function errMsg(e) { return (e && e.message ? e.message : String(e)).replace(/^(Error|Exception):\s*/, ''); }
+
+// טלפון ישראלי
+function phoneDigits(v) { var d = String(v || '').replace(/\D/g, ''); if (d.indexOf('972') === 0) d = '0' + d.substring(3); return d; }
+function phoneValid(v) { var d = phoneDigits(v); return /^05\d{8}$/.test(d) || /^07\d{8}$/.test(d) || /^0[2-489]\d{7}$/.test(d); }
+function phoneFormat(v) {
+  var d = phoneDigits(v);
+  if (/^0(5|7)/.test(d)) return d.length > 3 ? d.substring(0, 3) + '-' + d.substring(3) : d;
+  if (/^0[2-489]/.test(d)) return d.length > 2 ? d.substring(0, 2) + '-' + d.substring(2) : d;
+  return d;
+}
+function nameError(v) {
+  var s = String(v || '').replace(/\s+/g, ' ').trim();
+  if (!s) return 'יש למלא שם מלא של המשתתף';
+  if (s.replace(/[^A-Za-z֐-׿؀-ۿЀ-ӿ]/g, '').length < 2) return 'השם צריך להכיל אותיות';
+  if (s.split(' ').length < 2) return 'יש לכתוב שם פרטי ושם משפחה';
+  return '';
+}
+function radioVal(name) { var r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ''; }
 
 function formData() {
   return {
-    referrer: $('referrer').value, name: $('name').value.trim(), age: $('age').value, contactPhone: $('phone').value,
-    days: Array.prototype.map.call(document.querySelectorAll('#days input:checked'), function (i) { return i.value; }),
-    hour: $('hour').value, wantsVideo: !!files.video, wantsPhoto: !!files.photo
+    referrer: $('referrer').value.replace(/\s+/g, ' ').trim(), name: $('name').value.replace(/\s+/g, ' ').trim(),
+    age: $('age').value, contactPhone: phoneFormat($('phone').value), day: radioVal('day'), hour: radioVal('hour'),
+    wantsPhoto: !!files.photo, wantsVideo: !!files.video
   };
 }
+
+// ---------- בניית הטופס ----------
 var draft = lsGet() || {};
 if (!draft.subId) draft.subId = uuid();
 function saveDraft() { var d = formData(); d.subId = draft.subId; lsSet(d); }
 
 (function init() {
   var age = $('age');
-  for (var i = 1; i <= 100; i++) { var o = document.createElement('option'); o.value = i; o.textContent = i; age.appendChild(o); }
-  var hour = $('hour');
-  CFG.hours.forEach(function (h) { var o = document.createElement('option'); o.value = h; o.textContent = h; hour.appendChild(o); });
-  var days = $('days');
-  CFG.days.forEach(function (d) {
-    var l = document.createElement('label'); l.className = 'chip';
-    l.innerHTML = '<input type="checkbox" value="' + d + '"><span>' + d + '</span>';
-    days.appendChild(l);
-  });
+  for (var i = 1; i <= 100; i++) { var o = document.createElement('option'); o.value = i; o.textContent = i === 1 ? 'שנה' : i; age.appendChild(o); }
+  $('days').innerHTML = DAYS.map(function (d) {
+    return '<label class="chip"><input type="radio" name="day" value="' + d.v + '"><span>' + d.label + '<small>' + d.d + '</small></span></label>';
+  }).join('');
+  $('hours').innerHTML = HOURS.map(function (h) {
+    return '<label class="chip' + (h === 'גמיש' ? ' flex' : '') + '"><input type="radio" name="hour" value="' + h + '"><span>' + (h === 'גמיש' ? 'גמיש – כל שעה מתאימה' : h) + '</span></label>';
+  }).join('');
+
   // שחזור טיוטה (אם הדף רוענן)
-  if (draft.name || draft.contactPhone) {
-    $('referrer').value = draft.referrer || ''; $('name').value = draft.name || ''; $('age').value = draft.age || '';
-    $('phone').value = draft.contactPhone || ''; $('hour').value = draft.hour || '';
-    (draft.days || []).forEach(function (d) { var c = document.querySelector('#days input[value="' + d + '"]'); if (c) c.checked = true; });
-  }
+  $('referrer').value = draft.referrer || ''; $('name').value = draft.name || ''; $('age').value = draft.age || '';
+  $('phone').value = draft.contactPhone || '';
+  if (draft.day) { var dr = document.querySelector('input[name="day"][value="' + draft.day + '"]'); if (dr) dr.checked = true; }
+  if (draft.hour) { var hr = document.querySelector('input[name="hour"][value="' + draft.hour + '"]'); if (hr) hr.checked = true; }
+  updatePhoneLabel();
   saveDraft();
-  document.querySelectorAll('input[type=file]').forEach(function (inp) {
-    inp.addEventListener('change', function () {
-      var f = inp.files && inp.files[0]; inp.value = '';
-      if (f) pickFile(inp.getAttribute('data-kind'), f);
-    });
+
+  // בדיקות חיות
+  var lastPhone = $('phone').value;
+  $('phone').addEventListener('input', function (ev) {
+    // הקלדה: לא נותנים לעבור 10 ספרות. הדבקה ארוכה מדי: לא חותכים בשקט – מציגים שגיאה.
+    if (ev.inputType && ev.inputType.indexOf('insert') === 0 && ev.inputType !== 'insertFromPaste' && phoneDigits(this.value).length > 10) { this.value = lastPhone; return; }
+    var f = phoneFormat(this.value);
+    if (f !== this.value) this.value = f;
+    lastPhone = this.value;
+    if (phoneDigits(this.value).length > 10) { setBad('phone', 'יש יותר מדי ספרות. מספר נייד בישראל הוא 10 ספרות'); return; }
+    clearBad('phone');
+    card('phone').classList.toggle('good', phoneValid(this.value));
   });
+  $('phone').addEventListener('blur', function () { if (this.value) checkField('phone'); });
+  $('name').addEventListener('blur', function () { if (this.value) checkField('name'); });
+  $('age').addEventListener('change', updatePhoneLabel);
   document.querySelectorAll('#f input, #f select').forEach(function (el) {
-    var h = function () { var c = el.closest('.card'); if (c) c.classList.remove('bad'); saveDraft(); };
+    var h = function () { var c = el.closest('.card'); if (c && el.id !== 'phone') c.classList.remove('bad'); saveDraft(); };
     el.addEventListener('input', h); el.addEventListener('change', h);
   });
+  document.querySelectorAll('input[type=file]').forEach(function (inp) {
+    inp.addEventListener('change', function () { var f = inp.files && inp.files[0]; inp.value = ''; if (f) pickFile(inp.getAttribute('data-kind'), f); });
+  });
   window.addEventListener('beforeunload', function (e) { if (busy) { e.preventDefault(); e.returnValue = ''; return ''; } });
+  $('another').addEventListener('click', anotherParticipant);
+  run('ping').catch(function () {});   // "מחמם" את השרת כדי שהשליחה תהיה מהירה
 })();
 
-function fmtMB(b) { return (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + 'MB'; }
-
-function pickFile(kind, f) {
-  var card = document.querySelector('[data-f="' + kind + '"]');
-  card.classList.remove('bad');
-  if (kind === 'photo' && !/^image\//.test(f.type)) { alertCard(card, 'יש לבחור קובץ תמונה'); return; }
-  if (kind === 'video' && !/^video\//.test(f.type)) { alertCard(card, 'יש לבחור קובץ וידאו'); return; }
-  if (kind === 'video' && f.size > CFG.maxVideoBytes) { alertCard(card, 'הסרטון גדול מדי (עד ' + fmtMB(CFG.maxVideoBytes) + '). נסו סרטון קצר יותר.'); return; }
-  var done = function (file) {
-    files[kind] = file;
-    if (session) session[kind + 'Id'] = '';   // קובץ חדש – יעלה מחדש
-    var pv = $('pv-' + kind);
-    var url = URL.createObjectURL(file);
-    pv.innerHTML = (kind === 'photo' ? '<img src="' + url + '">' : '<video src="' + url + '" controls playsinline></video>') +
-      '<button type="button" class="rm">הסרה ✕</button><div class="meta">' + fmtMB(file.size) + '</div>';
-    pv.style.display = 'block';
-    pv.querySelector('.rm').onclick = function () { files[kind] = null; pv.style.display = 'none'; pv.innerHTML = ''; };
-  };
-  if (kind === 'photo') compressImage(f).then(done, function () { done(f); });
-  else done(f);
+function updatePhoneLabel() {
+  var a = Number($('age').value);
+  $('phone-label').innerHTML = (a && a < 18 ? 'טלפון של ההורה' : (a ? 'טלפון ליצירת קשר' : 'טלפון ליצירת קשר (לילדים: טלפון של ההורה)')) + '<span class="req">*</span>';
 }
 
-function alertCard(card, msg) { var e = card.querySelector('.err'); e.textContent = msg; card.classList.add('bad'); }
+function clearBad(f) { card(f).classList.remove('bad'); }
+function setBad(f, msg) { var c = card(f), e = c.querySelector('.err'); if (msg) e.textContent = msg; c.classList.add('bad'); c.classList.remove('good'); }
+function checkField(f) {
+  if (f === 'name') { var m = nameError($('name').value); if (m) { setBad('name', m); return false; } clearBad('name'); return true; }
+  if (f === 'age') { if (!$('age').value) { setBad('age'); return false; } return true; }
+  if (f === 'phone') {
+    var v = $('phone').value;
+    if (!v.trim()) { setBad('phone', 'יש למלא מספר טלפון'); return false; }
+    if (!phoneValid(v)) { setBad('phone', 'המספר לא תקין. נייד: 10 ספרות שמתחילות ב-05, למשל 050-1234567'); return false; }
+    clearBad('phone'); card('phone').classList.add('good'); return true;
+  }
+  if (f === 'day') { if (!radioVal('day')) { setBad('day'); return false; } return true; }
+  if (f === 'hour') { if (!radioVal('hour')) { setBad('hour'); return false; } return true; }
+  return true;
+}
+function validateAll(scroll) {
+  var first = null;
+  ['name', 'age', 'phone', 'day', 'hour'].forEach(function (f) { if (!checkField(f) && !first) first = card(f); });
+  if (first && scroll) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return !first;
+}
 
+// ---------- קבצים ----------
+function pickFile(kind, f) {
+  var c = card(kind); c.classList.remove('bad');
+  if (kind === 'photo' && !/^image\//.test(f.type)) { setBad(kind, 'יש לבחור קובץ תמונה'); return; }
+  if (kind === 'video' && !/^video\//.test(f.type)) { setBad(kind, 'יש לבחור קובץ וידאו'); return; }
+  if (kind === 'video' && f.size > MAX_VIDEO_BYTES) { setBad(kind, 'הסרטון גדול מדי (' + fmtMB(f.size) + '). אפשר עד ' + fmtMB(MAX_VIDEO_BYTES) + ' – נסו סרטון קצר יותר.'); return; }
+  var show = function (file) {
+    files[kind] = file;
+    if (session) session[kind + 'Id'] = '';
+    var pv = $('pv-' + kind), url = URL.createObjectURL(file);
+    pv.innerHTML = (kind === 'photo' ? '<img alt="" src="' + url + '">' : '<video src="' + url + '" controls playsinline preload="metadata"></video>') +
+      '<button type="button" class="rm">הסרה ✕</button><div class="meta">' + fmtMB(file.size) + '</div>';
+    pv.style.display = 'block';
+    pv.querySelector('.rm').onclick = function () { files[kind] = null; pv.style.display = 'none'; pv.innerHTML = ''; saveDraft(); };
+    saveDraft();
+  };
+  if (kind === 'photo') { compressImage(f).then(show, function () { show(f); }); return; }
+  // בדיקת אורך סרטון
+  var v = document.createElement('video'), u = URL.createObjectURL(f), settled = false;
+  var accept = function () { if (!settled) { settled = true; URL.revokeObjectURL(u); show(f); } };
+  v.preload = 'metadata'; v.muted = true;
+  v.onloadedmetadata = function () {
+    if (settled) return;
+    if (isFinite(v.duration) && v.duration > MAX_VIDEO_SEC) { settled = true; URL.revokeObjectURL(u); setBad('video', 'הסרטון ארוך מדי (' + Math.round(v.duration) + ' שניות). אפשר עד דקה אחת.'); return; }
+    accept();
+  };
+  v.onerror = accept; setTimeout(accept, 4000);
+  v.src = u;
+}
+
+// הקטנת תמונה לפני העלאה (מהיר בהרבה, איכות מספיקה לליהוק)
 function compressImage(file) {
   return new Promise(function (resolve, reject) {
-    if (file.size < 400 * 1024) return resolve(file);
-    var img = new Image();
+    if (file.size < 350 * 1024) return resolve(file);
+    var img = new Image(), u = URL.createObjectURL(file);
     img.onload = function () {
       var max = 1600, w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, max / Math.max(w, h));
       var c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u);
       c.toBlob(function (b) {
-        if (!b) return reject();
+        if (!b || b.size >= file.size) return resolve(file);
         resolve(new File([b], (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
-      }, 'image/jpeg', 0.85);
+      }, 'image/jpeg', 0.84);
     };
     img.onerror = reject;
-    img.src = URL.createObjectURL(file);
+    img.src = u;
   });
 }
 
-// קריאה לשרת (Google Apps Script) בלי עוגיות – כך התחברות לחשבונות גוגל לא מפריעה
+// ---------- תקשורת עם השרת ----------
 function run(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
   return fetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }), credentials: 'omit', redirect: 'follow' })
     .then(function (r) { if (!r.ok) throw new Error('שגיאת תקשורת (' + r.status + ')'); return r.json(); })
     .then(function (j) { if (!j.ok) throw new Error(j.error); return j.result; });
 }
-function sleep(ms) { return new Promise(function (s) { setTimeout(s, ms); }); }
+function isUserError(m) { return /יש ל|לא תקין|גדול מדי|רובוט|פג תוקף|לא מוכרת|ארוך מדי/.test(m); }
 async function runRetry(tries, fn) {
   var args = Array.prototype.slice.call(arguments, 2);
   for (var i = 1; ; i++) {
     try { return await run.apply(null, [fn].concat(args)); }
-    catch (e) {
-      var m = errMsg(e);
-      if (i >= tries || /יש ל|לא תקין|גדול מדי|רובוט|פג תוקף/.test(m)) throw e;
-      await sleep(1500 * i);
-    }
+    catch (e) { if (i >= tries || isUserError(errMsg(e))) throw e; await sleep(1200 * i); }
   }
 }
-function errMsg(e) { return (e && e.message ? e.message : String(e)).replace(/^Error:\s*/, '').replace(/^Exception:\s*/, ''); }
-
-function readChunkB64(blob) {
-  return new Promise(function (resolve, reject) {
-    var fr = new FileReader();
-    fr.onload = function () { var s = fr.result; resolve(s.substring(s.indexOf(',') + 1)); };
-    fr.onerror = reject;
-    fr.readAsDataURL(blob);
-  });
+function fileMeta() {
+  return ['photo', 'video'].filter(function (k) { return files[k]; })
+    .map(function (k) { return { kind: k, name: files[k].name || k, type: files[k].type, size: files[k].size }; });
 }
 
-// העלאה ישירה מהדפדפן לגוגל דרייב (מהיר, עם התקדמות אמיתית)
+// שמירה מוקדמת: ברגע שסימנו "אני לא רובוט" והטופס תקין – הפרטים נשמרים ברקע
+window.onCaptcha = function (t) {
+  captchaToken = t;
+  if (!session && !prebegin && !$('website').value && validateAll(false)) startBegin();
+};
+window.onCaptchaExpired = function () { captchaToken = ''; };
+function startBegin() {
+  var data = formData(), token = captchaToken;
+  captchaToken = '';
+  var meta = fileMeta();
+  prebegin = runRetry(3, 'beginSubmission', token, draft.subId, data, meta, location.origin)
+    .then(function (s) {
+      var sizes = {}; meta.forEach(function (m) { sizes[m.kind] = m.size; });
+      session = { token: s.token, subId: draft.subId, uploads: s.uploads || {}, sizes: sizes, photoId: '', videoId: '', sentData: JSON.stringify(data) };
+      return session;
+    })
+    .catch(function (e) { prebegin = null; throw e; });
+  prebegin.catch(function () {});
+  return prebegin;
+}
+
+// העלאה ישירה מהדפדפן לגוגל דרייב
 function putDirect(url, file, onProgress) {
   return new Promise(function (resolve, reject) {
     var x = new XMLHttpRequest();
     x.open('PUT', url);
     x.upload.onprogress = function (e) { if (e.lengthComputable) onProgress(e.loaded); };
     x.onload = function () {
-      if (x.status === 200 || x.status === 201) {
-        try { resolve(JSON.parse(x.responseText).id); } catch (e) { reject(new Error('תגובה לא תקינה')); }
-      } else reject(new Error('שגיאה בהעלאה (' + x.status + ')'));
+      if (x.status === 200 || x.status === 201) { try { resolve(JSON.parse(x.responseText).id); } catch (e) { reject(new Error('תגובה לא תקינה')); } }
+      else reject(new Error('שגיאה בהעלאה (' + x.status + ')'));
     };
     x.onerror = function () { reject(new Error('בעיית חיבור בזמן ההעלאה')); };
-    x.ontimeout = x.onerror;
     x.send(new Blob([file]));
   });
 }
-
-// מסלול גיבוי: העלאה בחלקים דרך השרת
-async function uploadViaServer(token, kind, file, onProgress) {
+function readChunkB64(blob) {
+  return new Promise(function (resolve, reject) {
+    var fr = new FileReader();
+    fr.onload = function () { var s = fr.result; resolve(s.substring(s.indexOf(',') + 1)); };
+    fr.onerror = reject; fr.readAsDataURL(blob);
+  });
+}
+async function uploadViaServer(token, kind, file, onProgress) {   // מסלול גיבוי
   var st = await runRetry(3, 'startUpload', token, kind, file.name || kind, file.type, file.size);
   var off = 0;
   while (off < file.size) {
     var end = Math.min(off + CHUNK, file.size);
-    var b64 = await readChunkB64(file.slice(off, end));
-    var r = await runRetry(4, 'uploadChunk', token, st.uploadId, off, b64);
-    off = end;
-    onProgress(off);
+    var r = await runRetry(4, 'uploadChunk', token, st.uploadId, off, await readChunkB64(file.slice(off, end)));
+    off = end; onProgress(off);
     if (r.done) return r.fileId;
   }
   throw new Error('ההעלאה לא הושלמה');
 }
-
-async function uploadFile(token, kind, file, onProgress) {
+async function uploadFile(kind, file, onProgress) {
   for (var attempt = 1; attempt <= 2; attempt++) {
     try {
-      var url = session.uploads && session.uploads[kind];
-      session.uploads[kind] = '';                    // קישור חד-פעמי
-      if (!url) url = (await runRetry(3, 'newSession', token, kind, file.name || kind, file.type, file.size, location.origin)).url;
+      var url = session.uploads[kind]; session.uploads[kind] = '';
+      if (!url || session.sizes[kind] !== file.size)   // הקובץ הוחלף אחרי השמירה המוקדמת
+        url = (await runRetry(3, 'newSession', session.token, kind, file.name || kind, file.type, file.size, location.origin)).url;
       return await putDirect(url, file, onProgress);
-    } catch (e) {
-      if (/גדול מדי|לא תקין/.test(errMsg(e))) throw e;
-      onProgress(0);
-    }
+    } catch (e) { if (isUserError(errMsg(e))) throw e; onProgress(0); }
   }
-  return uploadViaServer(token, kind, file, onProgress);   // אם ההעלאה הישירה לא מצליחה
+  return uploadViaServer(session.token, kind, file, onProgress);
 }
 
-function validate() {
-  var ok = true, first = null;
-  function bad(f, msg) { var c = document.querySelector('[data-f="' + f + '"]'); if (msg) c.querySelector('.err').textContent = msg; c.classList.add('bad'); ok = false; if (!first) first = c; }
-  if (!$('name').value.trim()) bad('name');
-  if (!$('age').value) bad('age');
-  if ($('phone').value.replace(/\D/g, '').length < 9) bad('phone');
-  if (!document.querySelectorAll('#days input:checked').length) bad('days');
-  if (!$('hour').value) bad('hour');
-  if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  return ok;
-}
-
+// ---------- שליחה ----------
+var t0 = 0;
 function setProgress(pct, title, sub) {
+  pct = Math.max(0, Math.min(100, pct));
   $('ov-bar').style.width = pct + '%'; $('ov-pct').textContent = Math.round(pct) + '%';
-  if (title) $('ov-title').textContent = title; if (sub) $('ov-sub').textContent = sub;
+  if (title) $('ov-title').textContent = title; if (sub !== undefined) $('ov-sub').textContent = sub;
 }
-function showErr(msg) { $('form-err').innerHTML = msg; $('form-err').style.display = 'block'; $('form-err').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+function notice(html, kind) { var n = $('notice'); n.className = 'notice ' + (kind || 'err-box'); n.innerHTML = html; n.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+function clearNotice() { $('notice').className = 'notice'; $('notice').innerHTML = ''; }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
 $('f').addEventListener('submit', async function (ev) {
   ev.preventDefault();
   if (busy) return;
-  $('form-err').style.display = 'none';
-  if ($('website').value) return;              // מלכודת לבוטים
-  if (!validate()) return;
-  if (!session && !captchaToken) { showErr('יש לסמן "אני לא רובוט"'); return; }
-  busy = true; $('go').disabled = true;
-  $('ov').style.display = 'flex';
-  setProgress(0, 'שומרים את הפרטים…', 'לא לסגור את הדף');
-  var stage = 'save';
-  try {
-    // שלב 1: הפרטים נשמרים בשרת לפני כל העלאה
-    if (!session) {
-      var meta = ['photo', 'video'].filter(function (k) { return files[k]; })
-        .map(function (k) { return { kind: k, name: files[k].name || k, type: files[k].type, size: files[k].size }; });
-      var s = await runRetry(3, 'beginSubmission', captchaToken, draft.subId, formData(), meta, location.origin);
-      session = { token: s.token, subId: draft.subId, photoId: '', videoId: '', uploads: s.uploads || {} };
-    }
-    var name = $('name').value.trim();
-    var needPhoto = files.photo && !session.photoId, needVideo = files.video && !session.videoId;
-    var total = (needPhoto ? files.photo.size : 0) + (needVideo ? files.video.size : 0) || 1, sent = 0;
+  clearNotice();
+  if ($('website').value) return;                      // מלכודת לבוטים
+  if (!validateAll(true)) return;
+  if (!session && !prebegin && !captchaToken) { notice('יש לסמן "אני לא רובוט" לפני השליחה'); return; }
 
-    // שלב 2: תמונה (רשות)
+  busy = true; $('go').disabled = true; $('ov').style.display = 'flex';
+  setProgress(2, 'שומרים את הפרטים…', 'לא לסגור את הדף');
+  var stage = 'save', data = formData();
+  try {
+    if (!session) await (prebegin || startBegin());
+    var needPhoto = files.photo && !session.photoId, needVideo = files.video && !session.videoId;
+    var total = (needPhoto ? files.photo.size : 0) + (needVideo ? files.video.size : 0), sent = 0;
+    t0 = Date.now();
+    var prog = function (base) { return function (n) {
+      var done = base + n, pct = total ? done / total : 1, secs = (Date.now() - t0) / 1000;
+      var left = pct > 0.05 && secs > 1 ? Math.round(secs / pct - secs) : null;
+      setProgress(5 + 90 * pct, null, left !== null && left > 2 ? 'נותרו כ-' + left + ' שניות · לא לסגור את הדף' : 'לא לסגור את הדף');
+    }; };
+
     stage = 'photo';
-    if (needPhoto) {
-      setProgress(3, 'מעלים את התמונה…');
-      session.photoId = await uploadFile(session.token, 'photo', files.photo, function (n) { setProgress(3 + 92 * (n / total)); });
-      sent = files.photo.size;
-    }
-    // שלב 3: סרטון (רשות) – כשל לא מבטל את ההרשמה
+    if (needPhoto) { setProgress(5, 'מעלים את התמונה…'); session.photoId = await uploadFile('photo', files.photo, prog(0)); sent = files.photo.size; }
+
     var videoFailed = false;
     if (needVideo) {
-      stage = 'video';
-      setProgress(3 + 92 * (sent / total), 'מעלים את הסרטון…', 'זה יכול לקחת כמה דקות – לא לסגור את הדף');
-      try {
-        session.videoId = await uploadFile(session.token, 'video', files.video, function (n) { setProgress(3 + 92 * ((sent + n) / total)); });
-      } catch (e) { videoFailed = true; }
+      stage = 'video'; setProgress(5 + 90 * (total ? sent / total : 0), 'מעלים את הסרטון…');
+      try { session.videoId = await uploadFile('video', files.video, prog(sent)); } catch (e) { videoFailed = true; }
     }
-    // שלב 4: סיום
-    stage = 'final';
-    setProgress(97, 'מסיימים…');
-    var r = await runRetry(4, 'finalize', session.token, session.photoId, session.videoId, videoFailed);
-    setProgress(100);
-    busy = false;
+    setProgress(100, 'כמעט סיימנו…', '');
+
+    var changed = JSON.stringify(data) !== session.sentData;
+    var fin = runRetry(5, 'finalize', session.token, session.photoId, session.videoId, videoFailed, data);
+    if (changed || videoFailed) await fin;              // אם הפרטים השתנו – מחכים לשמירה המלאה לפני שמסיימים
+
     $('ov').style.display = 'none';
     if (videoFailed) {
-      $('go').disabled = false;
-      $('go').textContent = 'לנסות שוב להעלות את הסרטון';
-      showErr('✅ ההרשמה של ' + name + ' נשמרה, אבל <b>הסרטון לא עלה</b> (כנראה בגלל החיבור). אפשר ללחוץ שוב לנסות, או לוותר עליו – ההרשמה כבר אצלנו.' +
-              '<br><button type="button" class="again" onclick="finish()">סיום בלי סרטון</button>');
+      busy = false; $('go').disabled = false; $('go').textContent = 'לנסות שוב להעלות את הסרטון';
+      notice('✅ ההרשמה של ' + esc(data.name) + ' נשמרה, אבל <b>הסרטון לא עלה</b> (כנראה בגלל החיבור). אפשר לנסות שוב, או לסיים בלי סרטון – ההרשמה כבר אצלנו.' +
+             '<br><button type="button" class="btn2" id="skipvid">סיום בלי סרטון</button>', 'warn-box');
+      $('skipvid').onclick = function () { showDone(data, Promise.resolve()); };
       return;
     }
-    finish();
+    showDone(data, fin);
   } catch (e) {
-    busy = false;
-    $('ov').style.display = 'none';
-    $('go').disabled = false;
+    busy = false; $('ov').style.display = 'none'; $('go').disabled = false;
     var m = errMsg(e) || 'משהו השתבש.';
     if (session && stage !== 'save') {
       $('go').textContent = 'לנסות שוב';
-      showErr('✅ הפרטים נשמרו אצלנו. ' + (stage === 'photo' ? '<b>התמונה לא עלתה</b>' : 'משהו השתבש בסיום') + ' – בדקו את החיבור ולחצו "לנסות שוב". (' + m + ')');
+      notice('✅ הפרטים נשמרו אצלנו. ' + (stage === 'photo' ? '<b>התמונה לא עלתה</b>' : 'משהו השתבש בסיום') + ' – בדקו את החיבור ולחצו "לנסות שוב".<br><small>(' + esc(m) + ')</small>');
     } else {
-      showErr(m + ' – הפרטים שמילאתם לא נמחקו, אפשר לנסות שוב.');
+      notice(esc(m) + '<br><small>מה שמילאתם לא נמחק – אפשר לסמן שוב "אני לא רובוט" ולשלוח.</small>');
       try { grecaptcha.reset(); } catch (x) {}
-      captchaToken = '';
+      captchaToken = ''; prebegin = null;
     }
   }
 });
 
-function finish() {
-  lsClear();
-  $('f').style.display = 'none';
-  $('done-txt').textContent = 'תודה! ההרשמה של ' + $('name').value.trim() + ' נקלטה. ניצור קשר לתיאום.';
-  $('done').style.display = 'block';
-  window.scrollTo(0, 0);
+function showDone(data, finPromise) {
+  var day = DAYS.filter(function (d) { return d.v === data.day; })[0];
+  $('summary').innerHTML =
+    '<div><b>משתתף/ת:</b> ' + esc(data.name) + ', גיל ' + esc(data.age) + '</div>' +
+    '<div><b>טלפון:</b> <span dir="ltr">' + esc(data.contactPhone) + '</span></div>' +
+    '<div><b>מתי:</b> ' + (day ? day.label + ' ' + day.d : esc(data.day)) + ', ' + (data.hour === 'גמיש' ? 'שעה גמישה' : 'בשעה ' + esc(data.hour)) + '</div>' +
+    '<div><b>צירופים:</b> ' + ([session.photoId ? 'תמונה' : '', session.videoId ? 'סרטון' : ''].filter(Boolean).join(' + ') || 'ללא') + '</div>';
+  $('f').style.display = 'none'; $('done').style.display = 'block'; window.scrollTo(0, 0);
+  // ניקוי הטיוטה – שומרים רק טלפון ו"מי הפנה" להרשמה הבאה
+  lsSet({ referrer: data.referrer, contactPhone: data.contactPhone, subId: uuid() });
+  busy = true;
+  finPromise.then(function () { $('savestate').textContent = '✓ נשמר'; $('savestate').className = 'savestate ok'; },
+                  function () { $('savestate').textContent = '✓ ההרשמה התקבלה'; $('savestate').className = 'savestate ok'; })
+            .then(function () { busy = false; });
+}
+
+function anotherParticipant() { if (busy) { $('savestate').textContent = 'רגע, מסיימים לשמור…'; return; } location.reload(); }
 }
 </script>
 </body>
