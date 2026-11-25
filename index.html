@@ -460,16 +460,23 @@ function compressImage(file) {
 // ---------- תקשורת עם השרת ----------
 function run(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
-  return fetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }), credentials: 'omit', redirect: 'follow' })
+  var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 45000) : 0;
+  return fetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }), credentials: 'omit', redirect: 'follow', signal: ctl ? ctl.signal : undefined })
+    .finally(function () { clearTimeout(tm); })
     .then(function (r) { if (!r.ok) throw new Error('שגיאת תקשורת (' + r.status + ')'); return r.json(); })
     .then(function (j) { if (!j.ok) throw new Error(j.error); return j.result; });
 }
-function isUserError(m) { return /יש ל|לא תקין|גדול מדי|רובוט|פג תוקף|לא מוכרת|ארוך מדי/.test(m); }
+function isUserError(m) { return /יש ל|לא תקין|גדול מדי|רובוט|פג תוקף|לא מוכרת|ארוך מדי|עומס חריג/.test(m); }
+// ניסיונות חוזרים בעומס: המתנה הולכת וגדלה + פיזור אקראי, כדי שכולם לא ינסו שוב באותו רגע
 async function runRetry(tries, fn) {
   var args = Array.prototype.slice.call(arguments, 2);
   for (var i = 1; ; i++) {
     try { return await run.apply(null, [fn].concat(args)); }
-    catch (e) { if (i >= tries || isUserError(errMsg(e))) throw e; await sleep(1200 * i); }
+    catch (e) {
+      if (i >= tries || isUserError(errMsg(e))) throw e;
+      if (busy && $('ov').style.display === 'flex') $('ov-sub').textContent = 'יש עומס רגעי – מנסים שוב אוטומטית, לא לסגור את הדף';
+      await sleep(Math.min(9000, 700 * Math.pow(2, i - 1)) + Math.random() * 800);
+    }
   }
 }
 function fileMeta() {
@@ -487,7 +494,7 @@ function startBegin() {
   var data = formData(), token = captchaToken;
   captchaToken = '';
   var meta = fileMeta();
-  prebegin = runRetry(3, 'beginSubmission', token, draft.subId, data, meta, location.origin)
+  prebegin = runRetry(6, 'beginSubmission', token, draft.subId, data, meta, location.origin)
     .then(function (s) {
       var sizes = {}; meta.forEach(function (m) { sizes[m.kind] = m.size; });
       session = { token: s.token, subId: draft.subId, uploads: s.uploads || {}, sizes: sizes, photoId: '', videoId: '', sentData: JSON.stringify(data) };
@@ -520,11 +527,11 @@ function readChunkB64(blob) {
   });
 }
 async function uploadViaServer(token, kind, file, onProgress) {   // מסלול גיבוי
-  var st = await runRetry(3, 'startUpload', token, kind, file.name || kind, file.type, file.size);
+  var st = await runRetry(5, 'startUpload', token, kind, file.name || kind, file.type, file.size);
   var off = 0;
   while (off < file.size) {
     var end = Math.min(off + CHUNK, file.size);
-    var r = await runRetry(4, 'uploadChunk', token, st.uploadId, off, await readChunkB64(file.slice(off, end)));
+    var r = await runRetry(6, 'uploadChunk', token, st.uploadId, off, await readChunkB64(file.slice(off, end)));
     off = end; onProgress(off);
     if (r.done) return r.fileId;
   }
@@ -535,7 +542,7 @@ async function uploadFile(kind, file, onProgress) {
     try {
       var url = session.uploads[kind]; session.uploads[kind] = '';
       if (!url || session.sizes[kind] !== file.size)   // הקובץ הוחלף אחרי השמירה המוקדמת
-        url = (await runRetry(3, 'newSession', session.token, kind, file.name || kind, file.type, file.size, location.origin)).url;
+        url = (await runRetry(5, 'newSession', session.token, kind, file.name || kind, file.type, file.size, location.origin)).url;
       return await putDirect(url, file, onProgress);
     } catch (e) { if (isUserError(errMsg(e))) throw e; onProgress(0); }
   }
@@ -594,7 +601,7 @@ async function doSubmit() {
     setProgress(100, 'כמעט סיימנו…', '');
 
     var changed = JSON.stringify(data) !== session.sentData;
-    var fin = runRetry(5, 'finalize', session.token, session.photoId, session.videoId, videoFailed, data);
+    var fin = runRetry(7, 'finalize', session.token, session.photoId, session.videoId, videoFailed, data);
     if (changed || videoFailed) await fin;              // אם הפרטים השתנו – מחכים לשמירה המלאה לפני שמסיימים
 
     $('ov').style.display = 'none';
